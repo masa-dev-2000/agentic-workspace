@@ -1,0 +1,7 @@
+interface:
+  display_name: "意思決定に効く資料作成"
+  short_description: "一度の判断確認から、第三者にも伝わる資料を完成"
+  default_prompt: "Use $build-decision-ready-materials to turn my evidence and intent into one decision-ready artifact, with a compact Decision Card and an independent blind-reader verification."
+
+policy:
+  allow_implicit_invocation: true

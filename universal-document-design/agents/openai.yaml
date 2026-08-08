@@ -1,0 +1,4 @@
+interface:
+  display_name: "ユニバーサル文書デザイン"
+  short_description: "読みやすく迷わず行動できる文書を設計するスキル"
+  default_prompt: "Use $universal-document-design to create a readable, accessible two-page action guide."

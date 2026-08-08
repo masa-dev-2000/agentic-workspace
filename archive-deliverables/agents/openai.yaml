@@ -1,0 +1,4 @@
+interface:
+  display_name: "成果物アーカイブ整理"
+  short_description: "最新版を残し、旧版を削除せず安全に日付別アーカイブへ整理"
+  default_prompt: "$archive-deliverables を使い、成果物の最新版を残して旧版を日付付きアーカイブへ整理してください。"

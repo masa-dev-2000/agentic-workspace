@@ -1,0 +1,6 @@
+interface:
+  display_name: "v2実装フロー"
+  short_description: "TODOから検証・文書追随まで安全に進めるv2開発手順"
+  default_prompt: "Use $implement-v2-work to implement the next ready v2 task and verify it before handoff."
+policy:
+  allow_implicit_invocation: false

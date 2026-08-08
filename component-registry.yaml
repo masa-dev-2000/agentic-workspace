@@ -1,0 +1,381 @@
+schemaVersion: 1
+canonical: true
+authorityEffects:
+  - read
+  - workspace-write
+  - state-append
+  - state-mutate
+  - external-propose
+  - external-execute
+dataWriteModes:
+  artifact: logical output; persistence additionally requires workspace-write
+  append: append-only state and requires state-append
+  mutate: state mutation and requires state-mutate
+  replace: state replacement and requires state-mutate
+components:
+  - id: registry.skill-validator
+    kind: validator
+    status: active
+    responsibility: Validate governed Skill and component contracts before activation or packaging.
+    implementation: scripts/validate_skill_registry.py
+    dependencies: []
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [skill-registry, component-registry, skill-frontmatter, openai-policy]
+      writes: []
+    version: 2.2.0
+
+  - id: resolver.capability
+    kind: resolver
+    status: active
+    deployment: local-on-demand
+    responsibility: Resolve stable capability identifiers to local or packaged Skill provider keys.
+    implementation: .adaptive-system/runtime/capability_resolver.py
+    dependencies: [registry.skill-validator]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [skill-registry]
+      writes: []
+    version: 1.1.0
+
+  - id: resolver.bundled-runtime
+    kind: resolver
+    status: active
+    deployment: local-on-demand
+    responsibility: Resolve the bundled primary-runtime Python and native Windows Poppler executables without executing them.
+    implementation: .adaptive-system/runtime/bundled_runtime_resolver.py
+    dependencies: []
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [local-runtime-layout]
+      writes: []
+    version: 1.0.0
+
+  - id: collector.failure
+    kind: collector
+    status: active
+    responsibility: Append one authenticated privacy-safe failure or recovery envelope to a local spool after shared detection of direct escaped nested dotted and bracketed credential assignments.
+    implementation: failure-learning/scripts/capture_hook.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [tool-lifecycle-metadata, failure-identity-key]
+      writes: [{domain: failure-event-spool, mode: append}]
+    version: 2.2.0
+
+  - id: store.failure-ledger
+    kind: ledger
+    status: active
+    responsibility: Authenticate and independently privacy-check failure envelopes, rebuild legacy payloads from an exact allowlist, publish schema and privacy readiness only after stored-row invariants and WAL checkpoints pass, and persist immutable observations, reviews, outcomes, and cases with atomic export and purge controls.
+    implementation: failure-learning/scripts/failure_store.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [failure-event-spool, failure-ledger-events]
+      writes:
+        - {domain: failure-ledger-events, mode: append}
+        - {domain: failure-curation-state, mode: mutate}
+    version: 3.0.0
+
+  - id: collector.feedback
+    kind: collector
+    status: active
+    responsibility: Append one exact-allowlist, body-free, HMAC-authenticated feedback classification to a local spool without creating a key, database, or worker, and fail closed across purge tombstones.
+    implementation: feedback-learning/scripts/capture_hook.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [user-feedback-signal]
+      writes: [{domain: feedback-ledger-events, mode: append}]
+    version: 2.1.0
+
+  - id: store.feedback-ledger
+    kind: ledger
+    status: active
+    responsibility: Authenticate body-free feedback envelopes, fail closed on key corruption, bind staged approvals to disk and ledger digests, and validate experiment outcomes only from trusted evidence linked to the exact experiment.
+    implementation: feedback-learning/scripts/feedback_store.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [feedback-ledger-events, privacy-safe-evidence-refs]
+      writes:
+        - {domain: feedback-ledger-events, mode: append}
+        - {domain: feedback-curation-state, mode: mutate}
+        - {domain: skill-evolution-staging, mode: mutate}
+    version: 4.0.0
+
+  - id: collector.skill-telemetry
+    kind: collector
+    status: active
+    responsibility: Append one privacy-safe Skill lifecycle envelope to a local spool without opening the domain ledger.
+    implementation: skill-telemetry/scripts/capture_hook.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [skill-lifecycle-metadata, skill-telemetry-identity-key]
+      writes: [{domain: skill-telemetry-spool, mode: append}]
+    version: 2.0.0
+
+  - id: store.skill-telemetry
+    kind: ledger
+    status: active
+    responsibility: Drain sanitized Skill lifecycle envelopes and persist deduplicated runs, microsecond lifecycle timing, scoped evidence, explicit sentiment, and evaluations whose verified-success references all resolve to trusted passed records uniquely linked to one eligible returned run.
+    implementation: skill-telemetry/scripts/telemetry_store.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [skill-telemetry-spool, skill-telemetry-events]
+      writes: [{domain: skill-telemetry-state, mode: mutate}]
+    version: 3.2.0
+
+  - id: store.skill-idea-ledger
+    kind: ledger
+    status: active
+    responsibility: Append schema-v1 Skill idea add and update events to a local JSONL ledger and project their latest state without rewriting prior events.
+    implementation: skill-idea-inbox/scripts/idea_inbox.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [skill-idea-events]
+      writes: [{domain: skill-idea-events, mode: append}]
+    version: 1.0.0
+
+  - id: hook.pm-prompt-dispatcher
+    kind: hook
+    status: legacy-external
+    responsibility: Fan out project prompt lifecycle signals to bounded PM and feedback collectors.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/hooks/user_prompt_dispatcher.py
+    dependencies: [collector.feedback, collector.pm-conversation]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [prompt-lifecycle-metadata]
+      writes:
+        - {domain: pm-inbox-events, mode: append}
+        - {domain: feedback-ledger-events, mode: append}
+    version: 0.5.0
+
+  - id: collector.pm-conversation
+    kind: collector
+    status: legacy-external
+    responsibility: Convert eligible conversation signals into project inbox observations.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/hooks/capture_prompt.py
+    dependencies: [ledger.pm]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [prompt-lifecycle-metadata]
+      writes: [{domain: pm-inbox-events, mode: append}]
+    version: 0.5.0
+
+  - id: ledger.pm
+    kind: ledger
+    status: legacy-external
+    responsibility: Persist project facts, milestones, tasks, dependencies, assignees, and verification.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/scripts/pm-ledger.mjs
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [pm-project-state]
+      writes: [{domain: pm-project-state, mode: mutate}]
+    version: 0.5.0
+
+  - id: adapter.pm-ledger
+    kind: adapter
+    status: planned
+    responsibility: Expose the existing PM ledger through stable local-first capability contracts.
+    implementation: null
+    dependencies: [ledger.pm, resolver.capability]
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [pm-project-state]
+      writes: [{domain: pm-project-state, mode: mutate}]
+    version: 0.1.0
+
+  - id: queue.pm-human
+    kind: queue
+    status: legacy-external
+    responsibility: Maintain one prioritized queue for consequential human decisions and work.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/scripts/pm-human-queue.mjs
+    dependencies: [ledger.pm]
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [pm-project-state]
+      writes: [{domain: pm-human-queue-state, mode: mutate}]
+    version: 0.5.0
+
+  - id: settings.pm
+    kind: settings
+    status: legacy-external
+    responsibility: Persist managed projects, automation level, cadence, budgets, and stop state.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/scripts/pm-settings.mjs
+    dependencies: [ledger.pm]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [pm-automation-settings]
+      writes: [{domain: pm-automation-settings, mode: mutate}]
+    version: 0.5.0
+
+  - id: scheduler.pm
+    kind: scheduler
+    status: legacy-external
+    responsibility: Install or update the bounded periodic project observation schedule.
+    implementation: ${USERPROFILE}/plugins/ai-project-manager/scripts/install-schedule.ps1
+    dependencies: [settings.pm]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [pm-automation-settings]
+      writes: [{domain: pm-schedule-state, mode: mutate}]
+    version: 0.5.0
+
+  - id: hook.clone-capture
+    kind: hook
+    status: legacy-external
+    responsibility: Capture authorized user and assistant turn pairs into the private clone archive.
+    implementation: ${USERPROFILE}/plugins/self-clone/scripts/capture_hook.py
+    dependencies: [ledger.clone, vault.clone-content]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [conversation-turn-pairs]
+      writes:
+        - {domain: clone-evidence-state, mode: append}
+        - {domain: clone-content-blobs, mode: append}
+    version: 0.2.0
+
+  - id: ledger.clone
+    kind: ledger
+    status: legacy-external
+    responsibility: Persist clone evidence references, profiles, exclusions, and evaluation lineage.
+    implementation: ${USERPROFILE}/plugins/self-clone/scripts/self_clone_core.py
+    dependencies: [vault.clone-content]
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [clone-evidence-state]
+      writes: [{domain: clone-evidence-state, mode: mutate}]
+    version: 0.2.0
+
+  - id: vault.clone-content
+    kind: vault
+    status: legacy-external
+    responsibility: Encrypt and store sensitive raw conversation content separately from derived evidence.
+    implementation: ${USERPROFILE}/plugins/self-clone/scripts/self_clone_core.py
+    dependencies: []
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [clone-content-blobs]
+      writes: [{domain: clone-content-blobs, mode: mutate}]
+    version: 0.2.0
+
+  - id: adapter.clone-ledger
+    kind: adapter
+    status: planned
+    responsibility: Expose the existing clone ledger through stable local-first capability contracts.
+    implementation: null
+    dependencies: [ledger.clone, resolver.capability]
+    authority: {default: deny, effects: [read, state-append, state-mutate]}
+    data:
+      reads: [clone-evidence-state]
+      writes: [{domain: clone-evidence-state, mode: mutate}]
+    version: 0.1.0
+
+  - id: spool.learning-events
+    kind: spool
+    status: active
+    deployment: not-installed
+    responsibility: Persist event envelopes quickly so lifecycle hooks can always fail open.
+    implementation: .adaptive-system/runtime/hook_dispatcher.py
+    dependencies: []
+    authority: {default: deny, effects: [state-append]}
+    data:
+      reads: []
+      writes: [{domain: learning-event-spool, mode: append}]
+    version: 1.1.0
+
+  - id: lock.local-process
+    kind: lock
+    status: active
+    deployment: local-filesystem-only
+    responsibility: Serialize local Runtime mutations with an OS-backed process-lifetime lock that is released on process exit.
+    implementation: .adaptive-system/runtime/process_lock.py
+    dependencies: []
+    authority: {default: deny, effects: [state-mutate]}
+    data:
+      reads: [local-lock-state]
+      writes: [{domain: local-lock-state, mode: mutate}]
+    version: 1.0.0
+
+  - id: worker.unified-events
+    kind: runtime
+    status: active
+    deployment: disabled-by-default
+    responsibility: Drain the shared event spool and invoke bounded collectors outside hook latency.
+    implementation: .adaptive-system/runtime/batch_router.py
+    dependencies: [spool.learning-events, lock.local-process]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [learning-event-spool]
+      writes: [{domain: collector-delivery-state, mode: append}]
+    version: 1.1.0
+
+  - id: policy.approval
+    kind: policy
+    status: active
+    deployment: local-on-demand
+    responsibility: Validate HMAC-authenticated, exact, current, scoped, single-use approval before high-impact state transitions.
+    implementation: .adaptive-system/runtime/approval.py
+    dependencies: []
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [approval-records]
+      writes: []
+    version: 1.0.0
+
+  - id: packager.plugin
+    kind: packager
+    status: active
+    deployment: dry-run-only
+    responsibility: Generate a reproducible Plugin export plan from validated local Skill sources without creating, overwriting, installing, or activating a Plugin.
+    implementation: .adaptive-system/packaging/export_plan.py
+    dependencies: [registry.skill-validator, resolver.capability]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [skill-registry, component-registry, local-skill-source]
+      writes: []
+    version: 1.3.0
+
+  - id: control.adaptive-runtime
+    kind: settings
+    status: active
+    deployment: local-on-demand
+    responsibility: Expose JSON health, status, pause, resume, kill-switch, and export-plan controls without requiring a Plugin or UI.
+    implementation: .adaptive-system/runtime/control_cli.py
+    dependencies: [worker.unified-events, packager.plugin, lock.local-process]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [adaptive-runtime-control, learning-event-spool, collector-delivery-state]
+      writes: [{domain: adaptive-runtime-control, mode: mutate}]
+    version: 1.1.0
+
+  - id: plan.hook-cutover
+    kind: migration
+    status: active
+    deployment: dry-run-only
+    responsibility: Inspect current lifecycle hooks and generate a non-mutating cutover proposal that preserves legacy Self Clone collection.
+    implementation: .adaptive-system/packaging/cutover_plan.py
+    dependencies: [spool.learning-events, worker.unified-events]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [hook-configuration]
+      writes: []
+    version: 1.0.0
+
+  - id: contracts.adaptive-runtime
+    kind: contract
+    status: active
+    deployment: local-source
+    responsibility: Define versioned Invocation, Result, Event, Learning, Proposal, Approval, and Experiment envelopes shared by local Skills and Runtime.
+    implementation: .adaptive-system/contracts
+    dependencies: []
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: []
+      writes: []
+    version: 1.0.0

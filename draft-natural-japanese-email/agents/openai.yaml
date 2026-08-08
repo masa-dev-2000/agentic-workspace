@@ -1,0 +1,4 @@
+interface:
+  display_name: "自然な日本語メール・Gmail下書き"
+  short_description: "自然な業務メールを作り、明示された場合だけGmail下書きへ保存"
+  default_prompt: "Use $draft-natural-japanese-email to draft a clear, warm Japanese business email and, only when explicitly requested, save it as a Gmail draft without sending."

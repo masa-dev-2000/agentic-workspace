@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reminder Escalator"
+  short_description: "Create proportionate reminders for stalled human work."
+  default_prompt: "Use $reminder-escalator to review due and blocked work."

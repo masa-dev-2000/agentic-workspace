@@ -1,0 +1,4 @@
+interface:
+  display_name: "成果物を自動表示"
+  short_description: "生成・検証済みの最新版成果物をWindows既定アプリで自動表示"
+  default_prompt: "$open-deliverable を使い、完成した成果物を検証後に既定アプリで開いてください。"

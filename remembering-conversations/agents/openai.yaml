@@ -1,0 +1,6 @@
+interface:
+  display_name: "Remembering Conversations (Legacy)"
+  short_description: "Compatibility entry for Episodic Memory"
+  default_prompt: "Use $remembering-conversations to delegate this recall request to Episodic Memory."
+policy:
+  allow_implicit_invocation: false

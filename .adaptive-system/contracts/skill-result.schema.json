@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/skill-result.schema.json",
+  "title": "SkillResult",
+  "description": "Evidence-oriented result returned to the owning orchestrator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "invocationId",
+    "target",
+    "status",
+    "outputRefs",
+    "evidenceRefs",
+    "proposedActions",
+    "authorityUsed",
+    "retryable",
+    "completedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "invocationId": { "$ref": "#/$defs/id" },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skillKey", "version", "contractHash"],
+      "properties": {
+        "skillKey": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "contractHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "status": {
+      "enum": ["completed", "partial", "blocked", "failed", "abstained"]
+    },
+    "outputRefs": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["class", "ref"],
+        "properties": {
+          "class": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "ref": { "$ref": "#/$defs/reference" },
+          "criterionIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "$ref": "#/$defs/id" }
+          },
+          "observedAt": { "$ref": "#/$defs/timestamp" }
+        }
+      }
+    },
+    "proposedActions": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action", "effect", "requiresApproval"],
+        "properties": {
+          "action": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "effect": {
+            "enum": [
+              "read",
+              "local-write",
+              "external-write",
+              "production",
+              "financial",
+              "legal",
+              "delete"
+            ]
+          },
+          "requiresApproval": { "type": "boolean" },
+          "artifactRef": { "$ref": "#/$defs/reference" }
+        }
+      }
+    },
+    "authorityUsed": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "messageCode"],
+      "properties": {
+        "class": {
+          "enum": [
+            "validation",
+            "capability",
+            "authority",
+            "dependency",
+            "timeout",
+            "budget",
+            "external",
+            "internal",
+            "unknown"
+          ]
+        },
+        "messageCode": { "$ref": "#/$defs/id" },
+        "diagnosticRef": { "$ref": "#/$defs/reference" },
+        "attemptSignature": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "retryable": { "type": "boolean" },
+    "telemetryRunId": { "$ref": "#/$defs/id" },
+    "completedAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

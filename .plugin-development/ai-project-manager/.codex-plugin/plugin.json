@@ -1,0 +1,18 @@
+{
+  "name": "ai-project-manager",
+  "version": "0.2.0",
+  "description": "Local-first AI project manager that observes projects, plans work, routes tasks to AI agents, humans, or services, verifies outcomes, and escalates only when needed.",
+  "author": {
+    "name": "masa"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI Project Manager",
+    "shortDescription": "Manage projects across AI agents and humans.",
+    "longDescription": "Observe project evidence, maintain an execution ledger, plan milestones, route work to AI agents, people, or services, verify results, and surface only decisions that need human attention.",
+    "developerName": "masa",
+    "category": "Productivity",
+    "capabilities": ["Project orchestration", "Human work queue", "Evidence-based planning"],
+    "defaultPrompt": "Use $project-orchestrator to inspect the current project, update the execution ledger, advance safe AI work, and show only the human decisions or actions that are currently needed."
+  }
+}

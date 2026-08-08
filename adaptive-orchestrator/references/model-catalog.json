@@ -1,0 +1,36 @@
+{
+  "schema": "model_catalog_v1",
+  "revision": "model-catalog-v1",
+  "models": {
+    "low-cost-research": {
+      "runtime_model_id": "gpt-5.6-luna",
+      "provider": "openai-runtime",
+      "class": "fast-research",
+      "enabled": true
+    },
+    "coding-default": {
+      "runtime_model_id": "gpt-5.4",
+      "provider": "openai-runtime",
+      "class": "coding-default",
+      "enabled": true
+    },
+    "coding-fast": {
+      "runtime_model_id": "gpt-5.6-luna",
+      "provider": "openai-runtime",
+      "class": "fast-coding",
+      "enabled": true
+    },
+    "reasoning-default": {
+      "runtime_model_id": "gpt-5.6-sol",
+      "provider": "openai-runtime",
+      "class": "deep-reasoning",
+      "enabled": true
+    },
+    "low-cost-writing": {
+      "runtime_model_id": "gpt-5.6-luna",
+      "provider": "openai-runtime",
+      "class": "fast-writing",
+      "enabled": true
+    }
+  }
+}

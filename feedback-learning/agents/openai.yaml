@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feedback Learning"
+  short_description: "Grow safer workflows from feedback evidence"
+  default_prompt: "Use $feedback-learning to review this evidence and stage the smallest safe improvement."

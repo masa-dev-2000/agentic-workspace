@@ -1,0 +1,4 @@
+interface:
+  display_name: "提案の比例性ゲート"
+  short_description: "提案前に必要十分性と運用負荷を判定して過剰設計を防止する"
+  default_prompt: "Use $proposal-proportionality-gate to assess a proposed architecture before review or implementation."

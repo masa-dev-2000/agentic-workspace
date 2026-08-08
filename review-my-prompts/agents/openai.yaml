@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review My Prompts"
+  short_description: "ユーザーが書いたプロンプトを評価する"
+  default_prompt: "ユーザーが書いたプロンプトを明確さ、簡潔さ、目的定義の観点で評価してください。"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "artifact_ref": "synthetic_sales_proposal_render_r0.md",
+  "reviewer_run_ref": "agent-run:synthetic-blind-reader-r0",
+  "reviewed_at": "2026-07-31T09:00:00+09:00",
+  "reviewed_artifact_sha256": "51bb430bbc7d3398751206a76e01e1f20f4388f3dda2321a05ed63e643ec1e17",
+  "review_context": {
+    "independent_reviewer": true,
+    "received": ["final-rendered-artifact"]
+  },
+  "extraction": {
+    "decision": "Approve a bounded 90-day dispatch-assistant pilot for two dispatch teams.",
+    "recommendation": "Run the bounded two-team pilot without committing to a full rollout.",
+    "causal_rationale": "The pilot would replace continued manual work with production evidence about adoption and time recovery; the sampled baseline is 96 manual hours per month, with an estimated recovery of 48–67 hours per month, while waiting another quarter preserves the workload and yields no adoption evidence.",
+    "largest_risk_or_uncertainty": "Adoption may differ between teams, and no production adoption evidence currently exists.",
+    "explicit_ask": "Approve the pilot budget and name an operational owner.",
+    "deadline_or_timing": "Complete approval and owner assignment by 2026-08-15; run the pilot for 90 days, with a week-four checkpoint and an end-or-redesign condition if active adoption remains below 50%."
+  },
+  "locators": [
+    "Slide 1: recommendation, requested decision, approval ask, deadline, two-team scope, and no-full-rollout framing",
+    "Slide 2: 96-hour monthly baseline and limitation to two of five teams",
+    "Slide 3: alternatives, learning value, and commitment trade-offs",
+    "Slide 4: estimated 48–67 hours recovered per month and adoption sensitivity",
+    "Slide 5: largest uncertainty, 90-day scope, week-four checkpoint, stop condition, and exclusion of full-rollout approval",
+    "Slide 6: explicit approval action, owner responsibilities, deadline, and cost of waiting"
+  ],
+  "can_act_without_presenter": false,
+  "blocking_issues": [
+    "The artifact asks the COO to approve a pilot budget but shows no budget amount, cost range, spending ceiling, or resource requirement, so the financial commitment cannot be evaluated or authorized from the artifact alone."
+  ],
+  "nonblocking_observations": [
+    "The operational owner is not proposed by name, but the artifact explicitly asks the decision-maker to name one and defines that owner's immediate responsibilities.",
+    "The two participating teams are not identified, but selection is explicitly assigned to the operational owner after approval.",
+    "The baseline is transparently limited to two teams and is not presented as a company-wide total.",
+    "The recommendation, causal logic, dominant uncertainty, checkpoint, stop condition, and decision deadline are explicit and easy to locate."
+  ],
+  "verdict": "fail"
+}

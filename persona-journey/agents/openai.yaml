@@ -1,0 +1,4 @@
+interface:
+  display_name: "Persona Journey"
+  short_description: "Simulate user journeys to refine requirements"
+  default_prompt: "Use $persona-journey to simulate how users experience these requirements."

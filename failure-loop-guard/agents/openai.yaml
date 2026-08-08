@@ -1,0 +1,4 @@
+interface:
+  display_name: "Failure Loop Guard"
+  short_description: "Check prior failures first, then choose a changed recovery path"
+  default_prompt: "Use $failure-loop-guard to consult the failure dictionary after the first failure and choose an evidence-based recovery path."

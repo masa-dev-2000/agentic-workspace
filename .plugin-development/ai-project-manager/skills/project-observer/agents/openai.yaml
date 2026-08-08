@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Observer"
+  short_description: "Collect fresh evidence and detect meaningful project changes."
+  default_prompt: "Use $project-observer to observe project status."

@@ -1,0 +1,4 @@
+grok models
+You are not authenticated.
+Default model: grok-4.5
+Decision: not used; no login, API key, or subscription was configured.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Phase Gate Manager"
+  short_description: "フェーズ別の要件・証拠・移行判定を一貫して管理"
+  default_prompt: "Use $phase-gate-manager to define the current product phase, its requirements, exit criteria, evidence, and next gate decision."
+policy:
+  allow_implicit_invocation: true

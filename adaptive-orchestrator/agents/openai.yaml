@@ -1,0 +1,4 @@
+interface:
+  display_name: Adaptive Orchestrator
+  short_description: 自動実行中心のタスク分解・委譲・検証・承認制御
+  default_prompt: $adaptive-orchestrator でこの作業を最小コストかつ自動実行中心に進めて

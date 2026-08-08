@@ -1,0 +1,4 @@
+interface:
+  display_name: "Govern Repository Layout"
+  short_description: "Audit and govern repository folder structure safely"
+  default_prompt: "Use $govern-repository-layout to audit this repository structure and propose a safe layout policy."

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "artifact_ref": "synthetic_sales_proposal_render.md",
+  "reviewer_run_ref": "agent-run:synthetic-contract-reader",
+  "reviewed_at": "2026-07-31T09:20:00+09:00",
+  "reviewed_artifact_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+  "review_context": {
+    "independent_reviewer": true,
+    "received": ["final-rendered-artifact"]
+  },
+  "extraction": {
+    "decision": "Approve a 90-day dispatch-assistant pilot",
+    "recommendation": "Run a bounded pilot for two dispatch teams",
+    "causal_rationale": "The bounded pilot can recover dispatch capacity and measure adoption before a rollout commitment within a JPY 1.8 million ceiling",
+    "largest_risk_or_uncertainty": "Adoption may differ between teams",
+    "explicit_ask": "Approve a pilot budget ceiling of JPY 1.8 million and name an operational owner by 2026-08-15",
+    "deadline_or_timing": "By 2026-08-15"
+  },
+  "locators": [
+    "slide 1: Approve a bounded 90-day dispatch-assistant pilot",
+    "slide 3: A pilot buys evidence that waiting cannot provide"
+  ],
+  "can_act_without_presenter": true,
+  "blocking_issues": [],
+  "nonblocking_observations": [
+    "The saving is correctly presented as a range"
+  ],
+  "verdict": "pass"
+}

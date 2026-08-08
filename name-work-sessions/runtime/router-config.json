@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "leaseSeconds": 180,
+  "maxRetries": 2,
+  "budget": {
+    "maxItems": 5,
+    "maxAdapterRuns": 1,
+    "maxSeconds": 180
+  },
+  "circuitBreaker": {
+    "failureThreshold": 2,
+    "cooldownSeconds": 300
+  },
+  "routes": {
+    "lifecycle.session-end": [
+      "session-auto-name"
+    ],
+    "lifecycle.session-start": [
+      "session-auto-name"
+    ]
+  },
+  "adapters": {
+    "session-auto-name": {
+      "enabled": true,
+      "inputContract": "EventEnvelope/1.0",
+      "command": [
+        "${PYTHON}",
+        "-X",
+        "utf8",
+        "${SKILLS_ROOT}/name-work-sessions/scripts/auto_name_adapter.py"
+      ],
+      "timeoutSeconds": 150
+    }
+  }
+}

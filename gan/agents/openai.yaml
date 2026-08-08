@@ -1,0 +1,4 @@
+interface:
+  display_name: "GAN Review"
+  short_description: "Run structured multi-agent adversarial reviews"
+  default_prompt: "Use $gan to adversarially review this proposal."

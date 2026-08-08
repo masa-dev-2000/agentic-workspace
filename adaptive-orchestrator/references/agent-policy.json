@@ -1,0 +1,12 @@
+{
+  "schema": "agent_policy_v1",
+  "revision": "agent-policy-v1",
+  "agents": {
+    "researcher": {"allowed_operations":["read"],"allowed_paths":[],"approval_required":false,"max_risk":"low"},
+    "implementer": {"allowed_operations":["read","workspace-write"],"allowed_paths":[],"approval_required":false,"max_risk":"medium"},
+    "tester": {"allowed_operations":["read","workspace-write"],"allowed_paths":[],"approval_required":false,"max_risk":"medium"},
+    "reviewer": {"allowed_operations":["read"],"allowed_paths":[],"approval_required":false,"max_risk":"medium"},
+    "documenter": {"allowed_operations":["read","workspace-write"],"allowed_paths":[],"approval_required":false,"max_risk":"low"},
+    "release_guard": {"allowed_operations":["read"],"allowed_paths":[],"approval_required":true,"max_risk":"high"}
+  }
+}

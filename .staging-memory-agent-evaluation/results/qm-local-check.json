@@ -1,0 +1,10 @@
+{
+  "package": "@yc-software/qm@latest",
+  "directory": "tools/qm-local",
+  "target": "docker",
+  "init": "pass",
+  "check": "pass",
+  "doctor": "blocked_without_provider_secrets",
+  "cloud_deploy": false,
+  "reason": "QM supports local Docker but requires a configured model-provider secret; no credentials were added."
+}

@@ -1,0 +1,11 @@
+{
+  "package": "myagentmemory@0.4.12",
+  "installation": "project-local npm prefix",
+  "cli": "dist/cli.js via real node.exe",
+  "directory": "tools/agent-memory-store",
+  "init": "pass",
+  "write": "pass",
+  "read": "pass",
+  "qmd": false,
+  "cloud": false
+}

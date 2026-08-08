@@ -1,0 +1,5 @@
+schema: github_triage_approvals_v1
+rules:
+  - {id: read-only, when: all_operations_are_read_or_suggest, decision: not_required}
+  - {id: write-handoff, when: any_write_is_requested, decision: return_to_root_and_route_to_separate_write_skill}
+  - {id: destructive-handoff, when: merge_delete_deploy_or_permission_change, decision: explicit_human_approval_required}

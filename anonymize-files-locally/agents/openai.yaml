@@ -1,0 +1,7 @@
+interface:
+  display_name: "ローカル機密匿名化"
+  short_description: "本文をCodexへ見せず匿名化し、人間承認まで管理"
+  default_prompt: "Use $anonymize-files-locally to anonymize this local file without exposing its contents to Codex, then guide me through human approval."
+
+policy:
+  allow_implicit_invocation: true

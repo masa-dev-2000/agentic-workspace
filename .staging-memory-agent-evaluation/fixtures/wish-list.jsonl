@@ -1,0 +1,5 @@
+{"id":"wish-001","title":"Hermesの応答速度改善","desired_outcome":"日常利用で待ち時間を許容範囲にする","next_action":"ボトルネックを計測し、モデル・プロキシ・ログ処理を分離して比較する","priority":"high","status":"candidate"}
+{"id":"wish-002","title":"Command CenterのInbox / Workboard","desired_outcome":"人間の判断とAIの進行を一画面で把握する","next_action":"Decision、Task、Agent、Eventの最小導線を実データで確認する","priority":"high","status":"candidate"}
+{"id":"wish-003","title":"定型実装のモデル割当","desired_outcome":"受入条件が固まった実装を低コストモデルへ安全に委任する","next_action":"対象条件、除外条件、成功率、手戻り、費用の記録項目を定義する","priority":"high","status":"candidate"}
+{"id":"wish-004","title":"秘書アバターの導入","desired_outcome":"常駐オーケストレーターの状態を短時間で理解する","next_action":"表示する状態と通知頻度を決め、重い常駐処理を避けたモックで評価する","priority":"medium","status":"candidate"}
+

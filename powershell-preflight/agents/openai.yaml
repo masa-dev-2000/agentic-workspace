@@ -1,0 +1,4 @@
+interface:
+  display_name: "PowerShell Preflight"
+  short_description: "Validate PowerShell 5.1 syntax, encoding, and quoting"
+  default_prompt: "Use $powershell-preflight to author and validate this Windows PowerShell script before executing it."

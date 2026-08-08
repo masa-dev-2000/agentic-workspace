@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/skill.schema.json",
+  "title": "ReusableSkill",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "description", "triggers", "exclusions", "inputs", "outputs", "required_context", "tools", "permissions", "approval_rules", "model_policy", "execution_policy", "logging_policy", "failure_policy", "success_criteria"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"},
+    "name": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "description": {"type": "string", "minLength": 1},
+    "triggers": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "exclusions": {"type": "array", "items": {"type": "string"}},
+    "inputs": {"type": "array", "items": {"$ref": "#/$defs/field"}},
+    "outputs": {"type": "array", "items": {"$ref": "#/$defs/field"}},
+    "required_context": {"type": "array", "items": {"type": "string"}},
+    "tools": {"type": "array", "items": {"$ref": "#/$defs/tool"}},
+    "permissions": {"type": "array", "items": {"enum": ["read", "suggest", "draft", "write", "destructive"]}},
+    "approval_rules": {"type": "array", "items": {"type": "string"}},
+    "model_policy": {"type": "object", "additionalProperties": false, "required": ["selection", "fallback", "record"], "properties": {"selection": {"type": "string"}, "fallback": {"type": "string"}, "record": {"type": "array", "items": {"type": "string"}}}},
+    "execution_policy": {"type": "object", "additionalProperties": false, "required": ["sandbox", "network", "timeouts", "retry"], "properties": {"sandbox": {"type": "string"}, "network": {"enum": ["deny", "allowlist", "unrestricted"]}, "timeouts": {"type": "object"}, "retry": {"type": "object"}}},
+    "logging_policy": {"type": "object"},
+    "failure_policy": {"type": "object"},
+    "success_criteria": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  },
+  "$defs": {
+    "field": {"type": "object", "additionalProperties": false, "required": ["name", "type", "required"], "properties": {"name": {"type": "string"}, "type": {"type": "string"}, "required": {"type": "boolean"}}},
+    "tool": {"type": "object", "additionalProperties": false, "required": ["id", "operation", "permission"], "properties": {"id": {"type": "string"}, "operation": {"type": "string"}, "permission": {"enum": ["read", "suggest", "draft", "write", "destructive"]}, "adapter": {"type": "string"}}}
+  }
+}

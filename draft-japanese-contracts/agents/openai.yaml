@@ -1,0 +1,4 @@
+interface:
+  display_name: "Japanese Contract Drafting"
+  short_description: "Draft and audit concise Japanese business contracts"
+  default_prompt: "Use $draft-japanese-contracts to draft and audit a concise Japanese service agreement."

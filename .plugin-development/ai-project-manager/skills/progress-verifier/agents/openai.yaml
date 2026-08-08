@@ -1,0 +1,4 @@
+interface:
+  display_name: "Progress Verifier"
+  short_description: "Verify outcomes before marking project work complete."
+  default_prompt: "Use $progress-verifier to verify the reported outcome."

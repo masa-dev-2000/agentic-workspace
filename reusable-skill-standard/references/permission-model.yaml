@@ -1,0 +1,29 @@
+schema: skill_permissions_v1
+levels:
+  read:
+    allows: [fetch, list, inspect, search]
+    approval: never
+    audit: metadata_and_evidence
+  suggest:
+    allows: [propose, rank, classify, recommend]
+    approval: never
+    audit: proposal_and_evidence
+  draft:
+    allows: [create_local_draft, prepare_patch, prepare_message]
+    approval: never
+    audit: draft_digest_and_evidence
+  write:
+    allows: [create, update, commit, push, publish, external_write]
+    approval: explicit_before_execution
+    audit: approval_and_execution
+  destructive:
+    allows: [delete, merge, deploy, revoke, permission_change, production_change]
+    approval: explicit_human_before_execution
+    audit: full_metadata_rollback_and_result
+rules:
+  - credentials_never_enter_model_context
+  - gatekeeper_required_for_external_operations
+  - agent_cannot_grant_authority
+  - approval_requested_is_not_approved
+  - unknown_scope_is_blocked
+  - authority_cannot_expand_on_fallback

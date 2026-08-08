@@ -1,0 +1,4 @@
+interface:
+  display_name: "クライアント意思決定資料"
+  short_description: "商談情報を、相手が判断できる提案・合意資料へ再構成"
+  default_prompt: "Use $build-client-decision-decks to restructure this client material around the client’s decision."

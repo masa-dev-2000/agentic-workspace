@@ -1,0 +1,189 @@
+{
+  "schema_version": 3,
+  "decision_card": {
+    "status": "approved",
+    "approval_evidence": "synthetic-fixture:approval-001",
+    "decision": "Approve a 90-day dispatch-assistant pilot",
+    "recommendation": "Run a bounded pilot for two dispatch teams",
+    "why_now": "The current manual process is consuming 96 hours each month",
+    "largest_uncertainty": "Adoption may differ between the two teams",
+    "explicit_ask": "Approve a pilot budget ceiling of JPY 1.8 million and name an operational owner by 2026-08-15",
+    "chosen_format": "pptx",
+    "recommendation_type": "bounded-pilot"
+  },
+  "evidence_acquisition_plan": null,
+  "communication_job": {
+    "purpose": "Enable the COO to approve or reject a bounded sales proposal",
+    "decision": "Approve a 90-day dispatch-assistant pilot",
+    "audience": ["COO of fictional Northstar Logistics"],
+    "use_moment": "live",
+    "decision_owner": "COO",
+    "desired_action": "Approve a JPY 1.8 million budget ceiling and operational owner",
+    "deadline": "2026-08-15",
+    "stakes": "Recover dispatch capacity without committing to a full rollout",
+    "failure_cost": "Another quarter of avoidable manual work and no adoption evidence",
+    "output_format": "pptx",
+    "format_basis": "live-discussion"
+  },
+  "claims": [
+    {
+      "id": "C1",
+      "statement": "The sampled dispatch workflow consumes 96 manual hours per month",
+      "classification": "fact",
+      "evidence_refs": ["synthetic-time-study:table-2"],
+      "method": "",
+      "range_or_sensitivity": "",
+      "confidence": "high",
+      "counterevidence_or_gap": "The sample covers two of five teams"
+    },
+    {
+      "id": "C2",
+      "statement": "A pilot could recover 48 to 67 hours per month",
+      "classification": "estimate",
+      "evidence_refs": ["synthetic-time-study:table-2", "synthetic-pilot-model:v1"],
+      "method": "96 sampled hours multiplied by a 50% to 70% assisted-work range",
+      "range_or_sensitivity": "48 to 67 hours; adoption is the dominant sensitivity",
+      "confidence": "medium",
+      "counterevidence_or_gap": "No production adoption evidence exists yet"
+    },
+    {
+      "id": "C3",
+      "statement": "Run a bounded pilot for two dispatch teams",
+      "classification": "recommendation",
+      "evidence_refs": ["C1", "C2"],
+      "method": "",
+      "range_or_sensitivity": "",
+      "confidence": "medium",
+      "counterevidence_or_gap": "Stop if adoption stays below 50% after week four"
+    },
+    {
+      "id": "C4",
+      "statement": "The 90-day two-team pilot requires JPY 1.5 to 1.8 million and will not exceed the JPY 1.8 million ceiling without a new approval",
+      "classification": "estimate",
+      "evidence_refs": ["synthetic-pilot-cost-model:v1"],
+      "method": "Estimated implementation and support hours multiplied by fictional role rates, plus a 10% contingency",
+      "range_or_sensitivity": "JPY 1.5 to 1.8 million; integration support is the dominant sensitivity",
+      "confidence": "medium",
+      "counterevidence_or_gap": "No production integration assessment exists; the ceiling prevents an unapproved overrun"
+    }
+  ],
+  "narrative": {
+    "governing_thought": "A bounded pilot buys production evidence while limiting commitment",
+    "causal_chain": [
+      "Manual dispatch work consumes measurable capacity",
+      "Assistance can remove a material share of repetitive work",
+      "A time-boxed pilot measures adoption before any rollout commitment"
+    ],
+    "recommendation": "Run a bounded pilot for two dispatch teams",
+    "primary_claim_ids": ["C3"],
+    "required_messages": [
+      "The pilot is limited to 90 days and two teams",
+      "The estimate is a range, not a guaranteed saving",
+      "The pilot stops if adoption remains below 50% after week four",
+      "The pilot has a JPY 1.8 million spending ceiling"
+    ],
+    "alternatives": [
+      {
+        "name": "Status quo",
+        "tradeoff": "Retains all manual work and produces no adoption evidence"
+      },
+      {
+        "name": "Full rollout",
+        "tradeoff": "Commits more budget before production adoption is known"
+      }
+    ],
+    "explicit_ask": "Approve a pilot budget ceiling of JPY 1.8 million and name an operational owner by 2026-08-15"
+  },
+  "architecture": [
+    {
+      "id": "U1",
+      "reading_job": "Make the decision and boundary immediately visible",
+      "headline": "Approve a bounded 90-day pilot for two dispatch teams",
+      "claim_ids": ["C1", "C2", "C3", "C4"],
+      "representation": "prose",
+      "speaker_or_appendix_detail": "Synthetic fixture; no external use"
+    },
+    {
+      "id": "U2",
+      "reading_job": "Show why a pilot is preferable to waiting or rolling out",
+      "headline": "A pilot creates adoption evidence without a rollout commitment",
+      "claim_ids": ["C1", "C2", "C3", "C4"],
+      "representation": "table",
+      "speaker_or_appendix_detail": "Compare status quo, pilot, and rollout"
+    }
+  ],
+  "human_gates": [
+    {
+      "id": "G1",
+      "kind": "price",
+      "item": "JPY 1.5 to 1.8 million synthetic pilot range and JPY 1.8 million ceiling",
+      "status": "approved",
+      "evidence_ref": "synthetic-fixture:approval-001"
+    },
+    {
+      "id": "G2",
+      "kind": "external-claim",
+      "item": "Synthetic company and evidence",
+      "status": "not-applicable",
+      "evidence_ref": "fixture is explicitly fictional and local-only"
+    }
+  ],
+  "verification": {
+    "content_checks": [
+      "decision card matches plan",
+      "claim classifications remain visible",
+      "status quo is explicit",
+      "budget range and ceiling are visible"
+    ],
+    "render_checks": [
+      "all slides rendered",
+      "no clipping or overlap",
+      "decision and ask legible at full-slide view"
+    ],
+    "editable_artifact_ref": "synthetic_sales_proposal_render.md",
+    "rendered_artifact_refs": [
+      "synthetic_sales_proposal_render.md"
+    ],
+    "final_artifact_ref": "synthetic_sales_proposal_render.md",
+    "final_artifact_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+    "text_extract_ref": "synthetic_sales_proposal_render.md",
+    "text_extract_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+    "format_validation_refs": [
+      "synthetic_sales_format_validation.json"
+    ],
+    "human_approval_required": true,
+    "independent_reader_required": true,
+    "max_revision_cycles": 2,
+    "independent_reader_verdict_ref": "synthetic_sales_forward_verdict_r1.json",
+    "independent_reader_verdict_sha256": "8f0326d28f983b2fd0288eb93f6154440c8c01046ab46646baaad6117bc6a7fc",
+    "independent_reader_verdict_status": "pass",
+    "final_approval_status": "approved",
+    "final_approval_evidence_ref": "synthetic-fixture:approval-001",
+    "semantic_anchors": {
+      "decision": ["90-day dispatch-assistant pilot"],
+      "recommendation": ["bounded pilot", "two dispatch teams"],
+      "why_now": ["96 hours"],
+      "largest_uncertainty": ["adoption"],
+      "explicit_ask": ["JPY 1.8 million", "operational owner", "2026-08-15"],
+      "required_messages": ["50%"]
+    },
+    "revision_history": [
+      {
+        "revision": "r0",
+        "artifact_ref": "synthetic_sales_proposal_render_r0.md",
+        "artifact_sha256": "51bb430bbc7d3398751206a76e01e1f20f4388f3dda2321a05ed63e643ec1e17",
+        "reader_verdict_ref": "synthetic_sales_forward_verdict_r0.json",
+        "reader_verdict_sha256": "045140320f974798cb67b2a2de552609d2f48e3d9e31e202dbd0bf502d41864b",
+        "verdict": "fail"
+      },
+      {
+        "revision": "r1",
+        "artifact_ref": "synthetic_sales_proposal_render.md",
+        "artifact_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+        "reader_verdict_ref": "synthetic_sales_forward_verdict_r1.json",
+        "reader_verdict_sha256": "8f0326d28f983b2fd0288eb93f6154440c8c01046ab46646baaad6117bc6a7fc",
+        "verdict": "pass"
+      }
+    ]
+  }
+}

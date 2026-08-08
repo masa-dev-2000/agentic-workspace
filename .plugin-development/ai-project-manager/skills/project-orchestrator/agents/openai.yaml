@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Project Manager"
+  short_description: "Manage projects across AI agents, people, and services."
+  default_prompt: "Use $project-orchestrator to advance this project."

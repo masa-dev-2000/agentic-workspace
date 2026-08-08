@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/invocation-envelope.schema.json",
+  "title": "InvocationEnvelope",
+  "description": "Versioned, reference-only handoff from one capability to another.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "invocationId",
+    "caller",
+    "target",
+    "context",
+    "inputRefs",
+    "constraints",
+    "authorityGrant",
+    "acceptanceCriteria"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "invocationId": { "$ref": "#/$defs/id" },
+    "causationId": { "$ref": "#/$defs/id" },
+    "caller": { "$ref": "#/$defs/skillIdentity" },
+    "target": {
+      "allOf": [
+        { "$ref": "#/$defs/skillIdentity" },
+        {
+          "type": "object",
+          "required": ["capability"],
+          "properties": {
+            "capability": { "$ref": "#/$defs/capability" }
+          }
+        }
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "$ref": "#/$defs/id" },
+        "taskId": { "$ref": "#/$defs/id" },
+        "sessionId": { "$ref": "#/$defs/id" },
+        "turnId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "inputRefs": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privacyClass"],
+      "properties": {
+        "deadline": { "$ref": "#/$defs/timestamp" },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxDurationSeconds": { "type": "integer", "minimum": 1 },
+            "maxToolCalls": { "type": "integer", "minimum": 0 },
+            "maxCostUnits": { "type": "number", "minimum": 0 }
+          }
+        },
+        "privacyClass": {
+          "enum": ["public", "internal", "confidential", "restricted"]
+        }
+      }
+    },
+    "authorityGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions"],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "read",
+              "local-write",
+              "external-propose",
+              "external-write",
+              "production-write",
+              "financial",
+              "legal",
+              "delete"
+            ]
+          }
+        },
+        "approvalRef": { "$ref": "#/$defs/reference" },
+        "expiresAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterionId", "description", "evidenceClasses"],
+        "properties": {
+          "criterionId": { "$ref": "#/$defs/id" },
+          "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "evidenceClasses": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "capability": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://"
+    },
+    "skillIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skillKey", "version", "contractHash"],
+      "properties": {
+        "skillKey": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "contractHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "capability": { "$ref": "#/$defs/capability" }
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Alignment Deep Research"
+  short_description: "Align scope, evidence, and roadmap for deep research"
+  default_prompt: "Clarify scope, depth, evidence, and deliverables; build an acceptance-tested roadmap; then research entities, products, suppliers, and processes with claim/source registers."

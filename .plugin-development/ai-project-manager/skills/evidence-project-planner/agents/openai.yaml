@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence Project Planner"
+  short_description: "Build milestones and tasks from verified evidence."
+  default_prompt: "Use $evidence-project-planner to create an evidence-based plan."

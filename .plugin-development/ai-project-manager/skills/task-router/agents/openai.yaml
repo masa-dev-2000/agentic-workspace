@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Router"
+  short_description: "Assign work safely to AI agents, people, or services."
+  default_prompt: "Use $task-router to assign each ready task."

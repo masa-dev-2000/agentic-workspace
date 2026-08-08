@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reusable Skill Standard"
+  short_description: "Design portable, auditable, permissioned AI Skills"
+  default_prompt: "Create or review a reusable AI Skill using the structured contract, Gatekeeper, model routing, sandbox, audit, and test standards."
+policy:
+  allow_implicit_invocation: false

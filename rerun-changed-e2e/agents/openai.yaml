@@ -1,0 +1,4 @@
+interface:
+  display_name: "差分回帰E2E"
+  short_description: "変更箇所だけを実画像・実HTTP・永続化まで再検証"
+  default_prompt: "Use $rerun-changed-e2e to rerun evidence-backed E2E only for behavior changed since the last verified baseline."

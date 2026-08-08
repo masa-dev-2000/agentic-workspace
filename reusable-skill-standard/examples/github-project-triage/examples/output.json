@@ -1,0 +1,1 @@
+{"repository":"owner/repo","facts":[],"inferences":[],"risks":[],"blockers":[],"unknowns":["fixture data not supplied"],"evidence_refs":[],"exploration_metrics":{"tool_calls":0,"files_read":0,"issues_read":0,"pull_requests_read":0,"duration_ms":"unavailable","input_tokens":"unavailable","output_tokens":"unavailable","cost":"unavailable"}}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Human Task Requester"
+  short_description: "Prepare concise and executable requests for people."
+  default_prompt: "Use $human-task-requester to prepare the human work request."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work Closeout Report"
+  short_description: "Evidence-bound four-block Japanese completion report"
+  default_prompt: "作業終了報告を、検証済み証拠だけで4ブロックにまとめて"

@@ -1,0 +1,12 @@
+{
+  "schema": "agent_registry_v1",
+  "revision": "agent-registry-v1",
+  "agents": [
+    {"id":"researcher","role":"researcher","model":"low-cost-research","capabilities":["research","compare","summarize"],"authority":["read"],"risk_level":"low","preferred_task_types":["research","comparison"],"fallback_agents":["reviewer"],"verification_required":true,"estimated_seconds":60,"estimated_cost":"low","enabled":true},
+    {"id":"implementer","role":"implementer","model":"coding-default","capabilities":["read","implement","modify","debug"],"authority":["read","workspace-write"],"risk_level":"medium","preferred_task_types":["implementation","bugfix"],"fallback_agents":[],"verification_required":true,"estimated_seconds":180,"estimated_cost":"medium","enabled":true},
+    {"id":"tester","role":"tester","model":"coding-fast","capabilities":["test","e2e","inspect"],"authority":["read","workspace-write"],"risk_level":"medium","preferred_task_types":["test","verification"],"fallback_agents":["reviewer"],"verification_required":true,"estimated_seconds":120,"estimated_cost":"low","enabled":true},
+    {"id":"reviewer","role":"reviewer","model":"reasoning-default","capabilities":["review","inspect","risk-analysis"],"authority":["read"],"risk_level":"medium","preferred_task_types":["review","verification"],"fallback_agents":["tester"],"verification_required":true,"estimated_seconds":90,"estimated_cost":"medium","enabled":true},
+    {"id":"documenter","role":"documenter","model":"low-cost-writing","capabilities":["document","summarize","inspect"],"authority":["read","workspace-write"],"risk_level":"low","preferred_task_types":["documentation","report"],"fallback_agents":["researcher"],"verification_required":true,"estimated_seconds":60,"estimated_cost":"low","enabled":true},
+    {"id":"release_guard","role":"release_guard","model":"reasoning-default","capabilities":["release-review","risk-analysis","verify"],"authority":["read"],"risk_level":"high","preferred_task_types":["release","production-review"],"fallback_agents":["reviewer"],"verification_required":true,"estimated_seconds":120,"estimated_cost":"medium","enabled":true}
+  ]
+}

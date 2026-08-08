@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Telemetry"
+  short_description: "全スキルの利用回数・結果・使用感を安全にローカル記録"
+  default_prompt: "Use $skill-telemetry to inspect recent skill usage and improvement signals."

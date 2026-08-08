@@ -1,0 +1,4 @@
+interface:
+  display_name: "作業セッション命名"
+  short_description: "終了時に自動命名し、手動上書きも守る検索しやすい作業名"
+  default_prompt: "Use $name-work-sessions to name this session now or configure privacy-safe automatic naming at SessionEnd."

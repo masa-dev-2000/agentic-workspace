@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hierarchical DAG Roadmap"
+  short_description: "Build clear dependency roadmaps with up to three layers"
+  default_prompt: "Use $build-dependency-roadmap to create a three-layer maximum DAG dependency roadmap with evidence-backed dependencies and completion forecasts."

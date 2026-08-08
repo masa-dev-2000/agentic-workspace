@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/experiment.schema.json",
+  "title": "Experiment",
+  "description": "Bounded rollout comparing an approved candidate with a versioned baseline.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "experimentId",
+    "proposalId",
+    "approvalRef",
+    "candidateHash",
+    "baseline",
+    "evaluation",
+    "rollout",
+    "status",
+    "startedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "experimentId": { "$ref": "#/$defs/id" },
+    "proposalId": { "$ref": "#/$defs/id" },
+    "approvalRef": { "$ref": "#/$defs/reference" },
+    "candidateHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["targetRef", "version", "contractHash"],
+      "properties": {
+        "targetRef": { "$ref": "#/$defs/reference" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "contractHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reference" }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["suiteRefs", "successCriteria"],
+      "properties": {
+        "suiteRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "successCriteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      }
+    },
+    "rollout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "maxRuns", "maxDays", "rollbackOn"],
+      "properties": {
+        "mode": { "enum": ["explicit-only", "allowlist", "canary"] },
+        "maxRuns": { "type": "integer", "minimum": 1 },
+        "maxDays": { "type": "integer", "minimum": 1 },
+        "projectAllowlist": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "rollbackOn": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "authority-violation",
+              "privacy-violation",
+              "false-success",
+              "regression",
+              "budget-exceeded"
+            ]
+          }
+        }
+      }
+    },
+    "status": {
+      "enum": ["prepared", "running", "paused", "completed", "rolled-back", "cancelled"]
+    },
+    "observationRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "conclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "evidenceRefs"],
+      "properties": {
+        "decision": { "enum": ["promote", "revise", "rollback", "insufficient-evidence"] },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reference" }
+        }
+      }
+    },
+    "startedAt": { "$ref": "#/$defs/timestamp" },
+    "endedAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://"
+    },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

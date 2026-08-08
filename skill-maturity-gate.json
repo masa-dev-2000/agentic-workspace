@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "status": "unfrozen",
+  "unfrozenAt": "2026-08-03",
+  "unfrozenReason": "All recorded outcome-v2, registry, reuse-cycle, real-case, and safety-suite criteria are verified.",
+  "startedAt": "2026-07-28",
+  "reason": "Collect prospective outcome-v2 evidence before expanding the Skill surface.",
+  "prospectiveCycle": {
+    "rubric": "outcome-v2",
+    "status": "collecting",
+    "startedAt": "2026-07-28T10:06:30+00:00",
+    "source": "skill-telemetry:meta:outcome_v2_cycle_start",
+    "targets": {
+      "skills": ["failure-loop-guard", "skill-telemetry", "ai-project-manager:project-orchestrator"],
+      "runsPerSkill": 10,
+      "connectionRate": 0.95,
+      "applicableEvidenceRate": 0.7,
+      "maxUnverifiedOverall": 0.4,
+      "maxUnverifiedPerSkill": 0.6,
+      "manualFalseSuccesses": 0
+    }
+  },
+  "exceptionPolicy": {
+    "mode": "explicit-exact-user-approval",
+    "requiredInitFlags": [
+      "--user-approved-freeze-override",
+      "--override-reason"
+    ]
+  },
+  "allowedWhileFrozen": [
+    "modify-existing-skill",
+    "add-tests-to-existing-skill",
+    "add-references-or-scripts-to-existing-skill",
+    "evaluate-skill",
+    "register-or-consume-reusable-component"
+  ],
+  "unfreezeCriteria": [
+    {
+      "id": "top3-outcomes",
+      "target": "30 outcome evaluations: 10 each for failure-loop-guard, skill-telemetry, and ai-project-manager:project-orchestrator",
+      "status": "verified",
+      "evidence": [
+        "skill-telemetry:skill_evaluations:outcome-v1:30:2026-07-28"
+      ]
+    },
+    {
+      "id": "registry-valid",
+      "target": "Canonical Skill registry passes validation",
+      "status": "verified",
+      "evidence": [
+        "scripts/validate_skill_registry.py:valid:2026-07-28",
+        "scripts/validate_skill_registry.py:valid:2026-08-03"
+      ]
+    },
+    {
+      "id": "reuse-cycle",
+      "target": "One component is registered, consumed, and audited",
+      "status": "verified",
+      "evidence": [
+        "reuse-library:dependency-graph-validator@0.1.0:approved-and-audited:2026-07-28",
+        "skill-observatory:snapshot-consumer-build-and-tests-passed:2026-07-28"
+      ]
+    },
+    {
+      "id": "three-real-cases",
+      "target": "Three build-complete-app cases have externally verifiable completion evidence",
+      "status": "verified",
+      "evidence": [
+        "skill-observatory:tests-build-mvp-browser-1440x900-390x844:2026-07-28",
+        "mira:planning-sync:tests-29-build-mvp-browser-1440x900-390x844:2026-07-28",
+        "kyoryokutai-support:r3-local:tests-3-typecheck-build-browser-4-viewports:2026-07-28"
+      ]
+    },
+    {
+      "id": "safety-suite",
+      "target": "Safety-boundary fault-injection suite is green",
+      "status": "verified",
+      "evidence": [
+        "ai-project-manager:pm-safety-e2e:5-risk-classes-plus-ambiguous-approval:2026-07-28",
+        "ai-project-manager:pm-e2e-regression:passed:2026-07-28"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Consulting Sales"
+  short_description: "Prepare and close scoped AI consulting sales engagements"
+  default_prompt: "Use $run-ai-consulting-sales to prepare a commercially complete AI consulting sales meeting."

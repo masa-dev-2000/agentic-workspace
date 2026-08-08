@@ -1,0 +1,6 @@
+interface:
+  display_name: "Planning Workflow"
+  short_description: "標準Plan modeの代わりに実行可能な計画を作る"
+  default_prompt: "この依頼を実行可能な計画へ分解し、レビューと実行ルーティングまで定義してください。"
+policy:
+  allow_implicit_invocation: false

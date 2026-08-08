@@ -1,0 +1,5 @@
+interface:
+  display_name: "Harvest Components"
+  short_description: "Safely collect reusable web components"
+  default_prompt: "Use $harvest-components to find, clean-room rebuild, and review reusable technical components from an explicitly authorized project."
+

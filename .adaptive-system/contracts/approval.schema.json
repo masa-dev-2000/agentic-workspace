@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/approval.schema.json",
+  "title": "Approval",
+  "description": "Human decision bound to an exact immutable proposal hash and bounded scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "approvalId",
+    "proposalId",
+    "decision",
+    "approvedHash",
+    "scope",
+    "decidedBy",
+    "decidedAt",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "approvalId": { "$ref": "#/$defs/id" },
+    "proposalId": { "$ref": "#/$defs/id" },
+    "decision": { "enum": ["approved", "rejected", "expired", "revoked"] },
+    "approvedHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "decidedBy": { "$ref": "#/$defs/id" },
+    "decidedAt": { "$ref": "#/$defs/timestamp" },
+    "expiresAt": { "$ref": "#/$defs/timestamp" },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "keyId", "signature"],
+      "properties": {
+        "algorithm": { "const": "hmac-sha256" },
+        "keyId": { "$ref": "#/$defs/id" },
+        "signature": {
+          "type": "string",
+          "pattern": "^hmac-sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "supersedesApprovalId": { "$ref": "#/$defs/id" },
+    "evidenceRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://"
+    },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "repo": {
+    "root": "C:\\Users\\masa\\dev\\02_experience\\personal\\memory-agent-evaluation",
+    "dirty": false,
+    "generatedAt": "2026-08-03T01:21:51Z"
+  },
+  "files": [
+    {
+      "id": 0,
+      "path": "README.md",
+      "dir": "",
+      "lines": 31,
+      "bytes": 1376,
+      "lang": "markdown",
+      "rect": {
+        "x": 89.60880088483505,
+        "z": 0.08,
+        "w": 30.31119911516495,
+        "d": 87.76158249745008
+      },
+      "ghost": false
+    },
+    {
+      "id": 1,
+      "path": "fixtures/wish-list.jsonl",
+      "dir": "fixtures",
+      "lines": 5,
+      "bytes": 1166,
+      "lang": "jsonl",
+      "rect": {
+        "x": 0.16,
+        "z": 88.08158249745007,
+        "w": 59.68000000000001,
+        "d": 31.75841750254991
+      },
+      "ghost": false
+    },
+    {
+      "id": 2,
+      "path": "results/.gitkeep",
+      "dir": "results",
+      "lines": 1,
+      "bytes": 1,
+      "lang": "gitkeep",
+      "rect": {
+        "x": 60.16,
+        "z": 88.08158249745007,
+        "w": 59.68000000000001,
+        "d": 31.75841750254991
+      },
+      "ghost": false
+    },
+    {
+      "id": 3,
+      "path": "scenarios/01-capture-and-recall.md",
+      "dir": "scenarios",
+      "lines": 19,
+      "bytes": 540,
+      "lang": "markdown",
+      "rect": {
+        "x": 0.16,
+        "z": 0.16,
+        "w": 46.44297658741624,
+        "d": 44.68349477023037
+      },
+      "ghost": false
+    },
+    {
+      "id": 4,
+      "path": "scenarios/02-cross-agent-handoff.md",
+      "dir": "scenarios",
+      "lines": 12,
+      "bytes": 434,
+      "lang": "markdown",
+      "rect": {
+        "x": 46.76297658741623,
+        "z": 0.16,
+        "w": 42.60582429741882,
+        "d": 44.68349477023037
+      },
+      "ghost": false
+    },
+    {
+      "id": 5,
+      "path": "scenarios/03-implementation-observation.md",
+      "dir": "scenarios",
+      "lines": 14,
+      "bytes": 455,
+      "lang": "markdown",
+      "rect": {
+        "x": 0.16,
+        "z": 45.00349477023036,
+        "w": 44.52440044241753,
+        "d": 42.758087727219724
+      },
+      "ghost": false
+    },
+    {
+      "id": 6,
+      "path": "scenarios/04-organization-platform.md",
+      "dir": "scenarios",
+      "lines": 13,
+      "bytes": 416,
+      "lang": "markdown",
+      "rect": {
+        "x": 44.84440044241752,
+        "z": 45.00349477023036,
+        "w": 44.52440044241753,
+        "d": 42.758087727219724
+      },
+      "ghost": false
+    }
+  ],
+  "dirs": [
+    {
+      "path": "scenarios",
+      "depth": 1,
+      "rect": {
+        "x": 0.08,
+        "z": 0.08,
+        "w": 89.36880088483505,
+        "d": 87.76158249745008
+      },
+      "fileCount": 4,
+      "lines": 58
+    },
+    {
+      "path": "fixtures",
+      "depth": 1,
+      "rect": {
+        "x": 0.08,
+        "z": 88.00158249745007,
+        "w": 59.84,
+        "d": 31.91841750254991
+      },
+      "fileCount": 1,
+      "lines": 5
+    },
+    {
+      "path": "results",
+      "depth": 1,
+      "rect": {
+        "x": 60.08,
+        "z": 88.00158249745007,
+        "w": 59.84,
+        "d": 31.91841750254991
+      },
+      "fileCount": 1,
+      "lines": 1
+    }
+  ],
+  "layout": {
+    "algorithm": "squarified-treemap-v1",
+    "weight": "sqrt(max(lines, bytes/4096, 16))"
+  }
+}

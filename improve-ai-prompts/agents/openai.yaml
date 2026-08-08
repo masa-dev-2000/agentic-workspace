@@ -1,0 +1,6 @@
+interface:
+  display_name: "Improve AI Prompts"
+  short_description: "本番AIプロンプトをgolden datasetで改善する"
+  default_prompt: "対象プロンプトを変更し、変更前後のgolden dataset評価まで実行してください。"
+policy:
+  allow_implicit_invocation: false

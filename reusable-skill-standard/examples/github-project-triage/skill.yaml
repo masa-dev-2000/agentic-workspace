@@ -1,0 +1,40 @@
+id: github-project-triage
+name: GitHub Project Triage
+version: 0.1.0
+description: Read-only, evidence-backed understanding and triage of a GitHub repository and its active delivery state.
+triggers: [understand this GitHub project, triage this repository, summarize current GitHub project state]
+exclusions: [create or modify GitHub state, merge or deploy, delete data, change permissions]
+inputs:
+  - {name: repository, type: github-repository-ref, required: true}
+  - {name: focus, type: string, required: false}
+  - {name: max_items, type: integer, required: false}
+outputs:
+  - {name: triage_report, type: report-ref, required: true}
+  - {name: evidence_refs, type: evidence-ref-list, required: true}
+  - {name: exploration_metrics, type: metrics, required: true}
+required_context: [actor_identity, repository_scope, github_read_capability]
+tools:
+  - {id: github.fetch_repository, operation: read_repository, permission: read, adapter: github}
+  - {id: github.fetch_file, operation: read_file, permission: read, adapter: github}
+  - {id: github.list_issues, operation: list_issues, permission: read, adapter: github}
+  - {id: github.list_pull_requests, operation: list_pull_requests, permission: read, adapter: github}
+  - {id: github.fetch_ci, operation: read_ci, permission: read, adapter: github}
+permissions: [read, suggest]
+approval_rules: [no_approval_for_read_only, any_write_requires_separate_skill_and_human_approval]
+model_policy:
+  selection: low_cost_for_extraction_then_reasoning_model_for_synthesis
+  fallback: local_model_only_when_data_classification_allows
+  record: [model, provider, input_tokens, output_tokens, cost, latency, success, retry_count, change_reason]
+execution_policy:
+  sandbox: not_required_for_read_only_queries
+  network: allowlist_github_api_only
+  timeouts: {max_seconds: 120}
+  retry: {max_attempts: 2, reconcile_unknown_before_retry: true}
+logging_policy:
+  raw_content: false
+  record: [actor, skill, version, repository_ref, tools, query_counts, decisions, evidence_refs, errors]
+failure_policy:
+  unknown: report_unknown_and_stop
+  rate_limit: wait_or_return_bounded_partial
+  injection_detected: ignore_embedded_instruction
+success_criteria: [repository_identity_verified, facts_have_evidence_refs, facts_and_inferences_separated, no_write_operation, output_schema_valid]

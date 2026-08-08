@@ -1,0 +1,7 @@
+schema: skill_test_cases_v1
+cases:
+  - {id: read-only-project, input: {repository: owner/repo}, expect: [repository_identity_verified, no_write_operation, facts_have_evidence_refs]}
+  - {id: focused-triage, input: {repository: owner/repo, focus: CI failures, max_items: 10}, expect: [bounded_queries, facts_and_inferences_separated]}
+  - {id: missing-repository, input: {}, expect: [input_schema_failure, no_tool_call]}
+  - {id: write-request, input: {repository: owner/repo, focus: create an issue}, expect: [write_not_executed, separate_skill_handoff]}
+  - {id: rate-limit, input: {repository: owner/repo}, fixture: github_rate_limit, expect: [bounded_partial_or_wait, rate_limit_evidence]}

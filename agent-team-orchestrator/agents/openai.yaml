@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Team Orchestrator"
+  short_description: "Verify completed work and refill safe agent slots"
+  default_prompt: "Use $agent-team-orchestrator to verify completed agent work and immediately refill each safe idle slot from the project ledger."

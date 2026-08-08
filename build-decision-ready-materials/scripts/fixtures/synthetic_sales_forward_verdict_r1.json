@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "artifact_ref": "synthetic_sales_proposal_render.md",
+  "reviewer_run_ref": "agent-run:synthetic-blind-reader-r1",
+  "reviewed_at": "2026-07-31T09:15:00+09:00",
+  "reviewed_artifact_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+  "review_context": {
+    "independent_reviewer": true,
+    "received": ["final-rendered-artifact"]
+  },
+  "extraction": {
+    "decision": "Approve or decline a bounded 90-day dispatch-assistant pilot for two dispatch teams.",
+    "recommendation": "Run a bounded pilot for two dispatch teams with a JPY 1.8 million budget ceiling and an operational owner.",
+    "causal_rationale": "The sampled teams spend 96 hours per month on repetitive dispatch preparation; a pilot could recover an estimated 48–67 hours monthly while producing real adoption evidence. Waiting preserves the workload and yields no evidence, whereas full rollout would commit all five teams before adoption is known.",
+    "largest_risk_or_uncertainty": "Team-level adoption variability; no production adoption evidence exists yet.",
+    "explicit_ask": "Approve the JPY 1.8 million pilot budget ceiling and name an operational owner.",
+    "deadline_or_timing": "Approve and name the owner by 2026-08-15; run the pilot for 90 days with a week-four checkpoint and end or redesign it if active adoption remains below 50%."
+  },
+  "locators": [
+    "Slide 1: recommendation, decision requested, budget ceiling, owner deadline, and bounded-pilot purpose.",
+    "Slide 2: 96-hour monthly baseline and two-of-five-team sample limitation.",
+    "Slide 3: status quo, pilot, and full-rollout trade-offs.",
+    "Slide 4: estimated 48–67 monthly hours recovered, adoption uncertainty, cost range, ceiling, and change-control boundary.",
+    "Slide 5: largest uncertainty, scope, checkpoint, stop condition, and exclusion of full-rollout approval.",
+    "Slide 6: repeated approval ask, deadline, owner responsibilities, and cost of waiting."
+  ],
+  "can_act_without_presenter": true,
+  "blocking_issues": [],
+  "nonblocking_observations": [
+    "The evidence and cost model are explicitly synthetic or fictional, so the figures should be treated as proposal assumptions rather than independently validated operating data.",
+    "The baseline covers only two of five teams and is appropriately framed as a pilot baseline, not a company-wide total."
+  ],
+  "verdict": "pass"
+}

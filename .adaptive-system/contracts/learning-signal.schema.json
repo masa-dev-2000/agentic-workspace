@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/learning-signal.schema.json",
+  "title": "LearningSignal",
+  "description": "Evidence-backed pattern candidate; never a direct instruction to modify a Skill.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "signalId",
+    "signalType",
+    "eventRefs",
+    "patternSignature",
+    "scope",
+    "occurrenceCount",
+    "independentSessionCount",
+    "impact",
+    "confidence",
+    "observedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "signalId": { "$ref": "#/$defs/id" },
+    "signalType": {
+      "enum": [
+        "failure",
+        "user-correction",
+        "user-request",
+        "user-preference",
+        "third-party-feedback",
+        "outcome-gap",
+        "positive-outcome"
+      ]
+    },
+    "eventRefs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "patternSignature": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["global", "domain", "project", "skill", "workflow"] },
+        "ref": { "$ref": "#/$defs/reference" }
+      }
+    },
+    "occurrenceCount": { "type": "integer", "minimum": 1 },
+    "independentSessionCount": { "type": "integer", "minimum": 1 },
+    "impact": { "enum": ["low", "medium", "high", "critical"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "counterEvidenceRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "thirdParty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "present": { "type": "boolean" },
+        "authorizedForLearning": { "type": "boolean" },
+        "rawContentRetained": { "const": false }
+      }
+    },
+    "observedAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z][A-Za-z0-9+.-]*://"
+    },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}

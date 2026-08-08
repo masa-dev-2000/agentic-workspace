@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.mira/contracts/event-envelope.schema.json",
+  "title": "EventEnvelope",
+  "description": "Small, raw-content-free event written atomically by a lifecycle hook.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "occurredAt",
+    "eventType",
+    "source",
+    "correlation",
+    "contentRefs",
+    "metadata",
+    "privacy"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "eventId": { "$ref": "#/$defs/id" },
+    "occurredAt": { "$ref": "#/$defs/timestamp" },
+    "eventType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+      "maxLength": 128
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": { "enum": ["hook", "scheduler", "manual", "adapter"] },
+        "name": { "$ref": "#/$defs/id" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "$ref": "#/$defs/id" },
+        "sessionId": { "$ref": "#/$defs/id" },
+        "turnId": { "$ref": "#/$defs/id" },
+        "toolUseId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "contentRefs": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "toolName": { "$ref": "#/$defs/id" },
+        "status": { "$ref": "#/$defs/id" },
+        "exitCode": { "type": "integer" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "isError": { "type": "boolean" },
+        "contentBytesDiscarded": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawContentStored"],
+      "properties": {
+        "rawContentStored": { "const": false },
+        "redactionVersion": { "type": "string", "minLength": 1, "maxLength": 32 }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^(vault|content|blob)://(sha256/[0-9a-f]{64}|opaque/[A-Za-z0-9_-]{16,128})$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

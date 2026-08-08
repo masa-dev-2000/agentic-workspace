@@ -1,0 +1,4 @@
+interface:
+  display_name: "Windows Performance Triage"
+  short_description: "Windowsの重さと感染兆候を診断し安全な軽量化を支援"
+  default_prompt: "Use $windows-performance-triage to diagnose why this Windows PC feels slow and propose safe cleanup."

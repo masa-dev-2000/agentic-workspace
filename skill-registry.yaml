@@ -1,0 +1,2268 @@
+schemaVersion: 2
+canonical: true
+contractModel: local-first-capability-v2
+contractIdentity:
+  legacyIdField: contractFingerprint
+  idSemantics: capability-and-version
+  contentDigestField: contractContentDigest
+dataWriteModes:
+  artifact: logical output; persistence additionally requires workspace-write
+  append: append-only state and requires state-append
+  mutate: owned state mutation and requires state-mutate
+  replace: owned state replacement and requires state-mutate
+sources:
+  local:
+    root: .
+    namespace: null
+    discover: true
+    migrationState: local-source
+  ai-project-manager:
+    root: ${USERPROFILE}/plugins/ai-project-manager/skills
+    namespace: ai-project-manager
+    discover: true
+    migrationState: legacy-packaged
+  self-clone:
+    root: ${USERPROFILE}/plugins/self-clone/skills
+    namespace: self-clone
+    discover: true
+    migrationState: legacy-packaged
+authorityEffects:
+  - read
+  - workspace-write
+  - state-append
+  - state-mutate
+  - external-propose
+  - external-execute
+  - destructive
+externalCapabilities:
+  - {id: image.generate, providerKey: imagegen}
+  - {id: memory.episodic.retrieve, providerKey: episodic-memory:remembering-conversations}
+  - {id: document.create, providerKey: documents:documents}
+  - {id: presentation.create, providerKey: presentations:Presentations}
+  - {id: pdf.create, providerKey: pdf:pdf}
+  - {id: browser.control, providerKey: browser:control-in-app-browser}
+  - {id: email.draft.manage, providerKey: gmail:gmail}
+definitions:
+  standardFailure: &standardFailure
+    maxEquivalentAttempts: 2
+    retry: material-change-only
+    route: execution.failure.guard
+  readOnlyFailure: &readOnlyFailure
+    maxEquivalentAttempts: 1
+    retry: alternate-evidence-source
+    route: human-clarification
+  noRetryFailure: &noRetryFailure
+    maxEquivalentAttempts: 0
+    retry: prohibited
+    route: human-decision
+  telemetry: &telemetry
+    enabled: true
+    lifecycle: true
+    outcomeEvidence: true
+    contentPolicy: metadata-only
+
+skills:
+  - key: agent-team-orchestrator
+    capability: project.agent-team.orchestrate
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Keep one root orchestrator, coordinate bounded independent agents from persistent PM ledger state, verify returned artifacts, and refill only safe eligible work.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: agent-team-orchestrator
+    secondaryCapabilities: []
+    source: local
+    path: agent-team-orchestrator
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Keep one root orchestrator, coordinate bounded independent agents from persistent PM ledger state, verify returned artifacts, and refill only safe eligible work.
+    nonGoals: [let subagents self-assign or spawn successors, infer completion from agent status, automatically route production destructive financial legal or public work]
+    triggers:
+      positive: [parallelize independent PM-ledger tasks, verify agent work and refill safe idle slots]
+      negative: [one-off delegation without persistent project state, overlapping write ownership]
+    dependencies:
+      capabilities: [task.progress.verify, task.route]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: projectLedger, type: ledger-ref}, {name: eligibleWork, type: task-ref}]
+      outputs: [{name: verifiedAssignments, type: report-ref}, {name: executionLeases, type: ledger-ref}]
+    authority: {default: deny, effects: [read, state-mutate, external-execute]}
+    data:
+      reads: [pm-project-state, agent-task-state, completion-evidence]
+      writes: [{domain: agent-execution-leases, mode: mutate}]
+      ownerOf: [agent-execution-leases]
+    completion:
+      proof: [each assignment is bounded and non-overlapping, returned work is independently verified, leases and blockers match current ledger state]
+      verifier: capability:task.progress.verify
+      acceptedEvidence: [pm-verified-task, artifact, validate, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [single-orchestrator, bounded-write-ownership, verified-refill, unsafe-work-exclusion]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:project.agent-team.orchestrate@1.0.0
+    contractContentDigest: sha256:ebc722526f2b4be89b8c5d019e6dbc8609995b056d9c3e103c486e7d59f09177
+
+  - key: anonymize-files-locally
+    capability: document.confidential.anonymize-local
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Anonymize a supported confidential file or folder tree through a loopback-only local LLM and require per-file human review without exposing contents or file lists to Codex.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: anonymize-files-locally
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Anonymize a supported confidential file or folder tree through a loopback-only local LLM and require per-file human review without exposing contents or file lists to Codex.
+    nonGoals: [guarantee every secret is removed, expose source or draft contents to Codex, approve on the human's behalf]
+    triggers:
+      positive: [anonymize or redact a confidential local file or folder, process sensitive content without Codex reading it]
+      negative: [cloud-based redaction, unsupported binary document conversion, automatic approval without human review]
+    dependencies:
+      capabilities: [execution.failure.guard]
+      components: []
+    interfaces:
+      inputs: [{name: sourceFileOrFolder, type: source-ref}, {name: localModelConfig, type: config-ref}]
+      outputs: [{name: anonymizedDraftOrTree, type: artifact-ref}, {name: humanReviewDecision, type: decision-ref}]
+    authority: {default: deny, effects: [read, workspace-write, external-execute]}
+    data:
+      reads: [user-selected-confidential-file-or-folder, local-llm-response]
+      writes: [{domain: local-anonymization-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [source and draft hashes remain current, deterministic residual counts recorded per file, human approved every completed draft]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [content-non-disclosure, loopback-enforcement, folder-tree-preservation, deterministic-csv-structure, stale-artifact-detection, human-approval-gate]
+    maturity: alpha
+    version: 0.3.0
+    contractFingerprint: contract-v2:document.confidential.anonymize-local@0.3.0
+    contractContentDigest: sha256:cf8277ab1bd44711b6a8c6b909a6c34b123d61a747ee10160da14a880b0a208f
+
+  - key: archive-deliverables
+    capability: artifact.deliverable.archive
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Keep the unambiguous current deliverable visible while reversibly moving superseded project artifacts into dated archives with an index and verified destinations.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: archive-deliverables
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Keep the unambiguous current deliverable visible while reversibly moving superseded project artifacts into dated archives with an index and verified destinations.
+    nonGoals: [delete deliverables, infer legal or externally sent artifacts are obsolete from age alone, move files outside the authorized project]
+    triggers:
+      positive: [archive superseded deliverables, keep only the latest replacement artifact visible]
+      negative: [ambiguous current version, unrelated old files, signed contractual or source evidence]
+    dependencies:
+      capabilities: [execution.failure.guard]
+      components: []
+    interfaces:
+      inputs: [{name: outputArea, type: artifact-ref}, {name: currentDeliverable, type: artifact-ref}]
+      outputs: [{name: archiveIndex, type: artifact-ref}, {name: moveVerification, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [project-deliverables, version-evidence]
+      writes: [{domain: project-deliverable-archive, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [current deliverable remains visible, each superseded file exists at a collision-safe archive path, index records classification basis and locations]
+      verifier: self
+      acceptedEvidence: [artifact, validate, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [current-version-precision, reversible-move-boundary, collision-safety, archive-index-completeness]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:artifact.deliverable.archive@1.0.0
+    contractContentDigest: sha256:f965dfe4e9746b0780fd360dce7c1e70753673813bc242cdef233785bf6c3107
+
+  - key: audit-ocr-semantic-structure
+    capability: evidence.ocr.audit
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Audit OCR page outputs for semantic completeness and physical-format drift while preserving raw evidence.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: audit-ocr-semantic-structure
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Audit OCR page outputs for semantic completeness and physical-format drift while preserving raw evidence.
+    nonGoals: [rewrite source evidence, approve ambiguous semantic normalization]
+    triggers:
+      positive: [OCR semantic audit, table or ledger extraction validation]
+      negative: [generic document summary, OCR generation without audit]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: sourceEvidence, type: source-ref}, {name: ocrPages, type: artifact-ref}]
+      outputs: [{name: auditFindings, type: report-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [ocr-source-evidence, ocr-page-output]
+      writes: [{domain: ocr-audit-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [all required audit dimensions checked, findings reference source locations]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [semantic-dimension-coverage, source-traceability]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:evidence.ocr.audit@1.0.0
+    contractContentDigest: sha256:3fe994a3b96c87e188400c94f2b785735fcf160327b4367f077352eb7e14935f
+
+  - key: build-complete-app
+    capability: product.app.build-complete
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Turn a sparse product request into one runnable and browser-verified local Web MVP.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: build-complete-app
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Turn a sparse product request into one runnable and browser-verified local Web MVP.
+    nonGoals: [deploy production without approval, claim completion from scaffolding alone]
+    triggers:
+      positive: [build a complete app, turn a short request into a working MVP]
+      negative: [planning-only request, isolated code explanation]
+    dependencies:
+      capabilities: [reuse.component.harvest, design.uiux.advise, requirements.persona.simulate]
+      components: []
+    interfaces:
+      inputs: [{name: productIntent, type: intent-ref}, {name: targetProject, type: project-ref}]
+      outputs: [{name: runnableApp, type: artifact-ref}, {name: verification, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [project-source, product-intent, reuse-catalog]
+      writes: [{domain: project-workspace, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [passing tests and build, real-browser viewport evidence, launch instructions]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [mvp-runnable, browser-ux, sparse-prompt-completion]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:product.app.build-complete@1.0.0
+    contractContentDigest: sha256:ac74f406bb4ec814e476722df02b12c76ce11a11ac80978a5bd064386660cbb0
+
+  - key: build-decision-ready-materials
+    capability: material.decision-ready.build
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Turn intent and source evidence into a human-approved Decision Card and one stakeholder artifact whose task-relative files, hashes, revision chain, approval evidence, and decision semantics survive context-isolated reader review; when evidence is insufficient, produce an executable human-approved evidence-acquisition plan.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: build-decision-ready-materials
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Turn intent and source evidence into a human-approved Decision Card and one stakeholder artifact whose task-relative files, hashes, revision chain, approval evidence, and decision semantics survive context-isolated reader review; when evidence is insufficient, produce an executable human-approved evidence-acquisition plan.
+    nonGoals: [own format-specific rendering, hide uncertainty behind polished copy, mark completion from export or self-review alone, send or publish externally]
+    triggers:
+      positive: [create a proposal executive brief board material sales deck report or decision memo, make stakeholder material that must drive a decision]
+      negative: [mechanical file conversion, isolated layout edit with no communication redesign, casual note with no decision job]
+    dependencies:
+      capabilities: [document.create, presentation.create, pdf.create, research.deep.align-execute, execution.failure.guard]
+      components: []
+    interfaces:
+      inputs: [{name: materialIntent, type: intent-ref}, {name: sourceEvidence, type: evidence-ref}, {name: formatConstraints, type: config-ref}]
+      outputs: [{name: decisionReadyArtifact, type: artifact-ref}, {name: verificationEvidence, type: evidence-ref}, {name: evidenceAcquisitionPlan, type: plan-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [user-intent, source-evidence, brand-and-template-assets]
+      writes: [{domain: decision-material-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [approved Decision Card, validated communication and claim contract, hash-bound final artifact and render, complete format validation, sequential revision history within the two-revision cap, passing context-isolated reader verdict bound to the final artifact hash, consequential gates and final approval evidence recorded, approved executable evidence-acquisition plan when applicable]
+      verifier: human
+      acceptedEvidence: [artifact, validate, domain-verdict, explicit-feedback, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [decision-card-cost, decision-clarity, claim-evidence-traceability, causal-narrative, deterministic-format-routing, rendered-quality, blind-reader-actionability, bounded-revision, evidence-acquisition-executability, approval-provenance-boundary]
+    maturity: alpha
+    version: 0.3.0
+    contractFingerprint: contract-v2:material.decision-ready.build@0.3.0
+    contractContentDigest: sha256:1d16989b1992bbe0056616fac87b42aeb7cfdc47df0eeb423b0e1efae82deb05
+
+  - key: build-dependency-roadmap
+    capability: project.roadmap.render
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Render a one-screen hierarchical dependency DAG with drill-down, evidence, ETA, and live project state.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: build-dependency-roadmap
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Render a one-screen hierarchical dependency DAG with drill-down, evidence, ETA, and live project state.
+    nonGoals: [invent unverified dependencies, render more than three visible hierarchy layers]
+    triggers:
+      positive: [dependency roadmap, DAG network with node details and ETA]
+      negative: [flat todo list, decorative graph without project evidence]
+    dependencies:
+      capabilities: [project.observe]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: projectLedger, type: ledger-ref}, {name: viewportProfile, type: config-ref}]
+      outputs: [{name: roadmapHtml, type: artifact-ref}, {name: visualQa, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [pm-project-state, project-evidence]
+      writes: [{domain: roadmap-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [ledger-backed dependencies, responsive viewport screenshots, drill-down and refresh verified]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [dag-validity, three-layer-ux, live-refresh]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:project.roadmap.render@1.0.0
+    contractContentDigest: sha256:f6fbef97b8d5c8dd2994f8ce4708bb799a2198c6de8e47af31bdfe1206c199c7
+
+  - key: draft-japanese-contracts
+    capability: document.contract.ja-draft
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Draft and audit concise Japanese B2B agreements and matching commercial terms as reviewable artifacts.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: draft-japanese-contracts
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Draft and audit concise Japanese B2B agreements and matching commercial terms as reviewable artifacts.
+    nonGoals: [provide final legal advice, execute or send a contract]
+    triggers:
+      positive: [Japanese B2B contract drafting, contract clause audit]
+      negative: [foreign-law agreement without adaptation, autonomous signature]
+    dependencies: {capabilities: [document.create], components: []}
+    interfaces:
+      inputs: [{name: commercialTerms, type: intent-ref}, {name: riskPreferences, type: config-ref}]
+      outputs: [{name: contractDraft, type: artifact-ref}, {name: issueList, type: report-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [commercial-terms, contract-source]
+      writes: [{domain: contract-draft-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [requested clauses covered, internal consistency checked, legal review limitation stated]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [clause-coverage, internal-consistency, legal-boundary]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:document.contract.ja-draft@1.0.0
+    contractContentDigest: sha256:2d721a24379cd2ad73370c8e570a2369d9d0ca613c7fbb4b7075afe6f052e95f
+
+  - key: draft-natural-japanese-email
+    capability: communication.email.japanese.draft
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Draft or revise natural Japanese business email copy that minimizes recipient effort while preserving facts and commercial boundaries, and on explicit request create or update exactly one reviewable connected Gmail draft without sending it.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: draft-natural-japanese-email
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Draft or revise natural Japanese business email copy that minimizes recipient effort while preserving facts and commercial boundaries, and on explicit request create or update exactly one reviewable connected Gmail draft without sending it.
+    nonGoals: [send email or a saved draft, create external state from a wording-only request, invent recipients dates prices deadlines commitments or message IDs, duplicate a referenced saved draft, soften away exclusions or contractual boundaries]
+    triggers:
+      positive: [draft a Japanese business email, make an existing Japanese email softer or more natural, create save or update a Gmail draft for review]
+      negative: [send an email immediately, wording request without draft-save intent, legal notice requiring counsel, non-Japanese correspondence]
+    dependencies: {capabilities: [email.draft.manage], components: []}
+    interfaces:
+      inputs: [{name: communicationIntent, type: intent-ref}, {name: immutableFacts, type: evidence-ref}, {name: mailboxContext, type: evidence-ref}]
+      outputs: [{name: subjectAndBodyDraft, type: artifact-ref}, {name: savedDraftReceipt, type: evidence-ref}]
+    authority: {default: deny, effects: [read, external-execute]}
+    data:
+      reads: [user-provided-email-context, verified-email-thread, prior-draft, connected-mailbox-draft-metadata]
+      writes: []
+      ownerOf: []
+    completion:
+      proof: [purpose is immediately clear, supplied facts and boundaries are preserved, external mutation occurs only after explicit draft-save intent, saved-draft receipt matches the resolved recipient and subject, reply drafts use a real message ID, no send action occurs, unavailable Gmail unresolved recipients or provider update limits produce an explicitly unchanged or unsaved paste-ready fallback]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [fact-preservation, tone-naturalness, boundary-preservation, response-effort, explicit-save-gate, no-send-boundary, threaded-reply-message-id, update-without-duplication, attachment-update-limit, draft-receipt, unavailable-gmail-fallback]
+    maturity: beta
+    version: 1.1.0
+    contractFingerprint: contract-v2:communication.email.japanese.draft@1.1.0
+    contractContentDigest: sha256:da1171a1bbdccbebc8147f283251774b967aa8edef8130826a2f41e82cdb8e40
+
+  - key: failure-learning
+    capability: learning.failure.curate
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Curate authenticated and privacy-bounded recurring failure evidence into scoped, counter-aware, and testable improvement candidates only after schema, migration markers, and stored-row privacy invariants agree.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: failure-learning
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Curate authenticated and privacy-bounded recurring failure evidence into scoped, counter-aware, and testable improvement candidates only after schema, migration markers, and stored-row privacy invariants agree.
+    nonGoals: [execute stored commands, infer root cause from one later success, retain residual secrets absolute paths or unknown legacy payload fields, trust privacy markers without row verification]
+    triggers:
+      positive: [review recent failures, find recurring error patterns]
+      negative: [routine first failure during active work, retry execution]
+    dependencies: {capabilities: [], components: [store.failure-ledger]}
+    interfaces:
+      inputs: [{name: failureEvidence, type: ledger-ref}]
+      outputs: [{name: improvementCandidates, type: decision-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [failure-ledger-events]
+      writes: [{domain: failure-curation-state, mode: mutate}]
+      ownerOf: [failure-curation-state]
+    completion:
+      proof: [candidate references independent eligible failure events, direct escaped and nested credentials rejected at collection and persistence boundaries, legacy payloads rebuilt from an exact allowlist, schema and privacy readiness published only after row invariants and WAL checkpoints pass, uncertainty and counterevidence retained]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [recurrence-evidence, intervention-outcome-link, escaped-credential-boundary, authenticated-recovery, privacy-marker-row-invariants, legacy-payload-allowlist, bounded-drain, atomic-export-purge]
+    maturity: beta
+    version: 1.2.0
+    contractFingerprint: contract-v2:learning.failure.curate@1.2.0
+    contractContentDigest: sha256:48e07d3dfb835e4722ce4d8ded45180d95b5b3ff595c99886699ab623c1a7c73
+
+  - key: failure-loop-guard
+    capability: execution.failure.guard
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Prevent equivalent failed attempts from repeating without a materially changed recovery path.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: failure-loop-guard
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Prevent equivalent failed attempts from repeating without a materially changed recovery path.
+    nonGoals: [guarantee recovery, retry an unchanged action a third time]
+    triggers:
+      positive: [tool or command failure, repeated workflow error]
+      negative: [successful action, unrelated retrospective without an active objective]
+    dependencies:
+      capabilities: [learning.failure.curate]
+      components: [store.failure-ledger]
+    interfaces:
+      inputs: [{name: failedAttempt, type: evidence-ref}, {name: objective, type: intent-ref}]
+      outputs: [{name: recoveryDecision, type: decision-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [failure-ledger-events]
+      writes: [{domain: failure-attempt-state, mode: mutate}]
+      ownerOf: [failure-attempt-state]
+    completion:
+      proof: [no third equivalent retry, changed strategy or bounded stop recorded]
+      verifier: self
+      acceptedEvidence: [test, validate, artifact, explicit-feedback, authority]
+    failure:
+      maxEquivalentAttempts: 0
+      retry: prohibited-without-new-evidence
+      route: human-decision
+    telemetry: *telemetry
+    evals: [equivalent-attempt-detection, changed-path-enforcement]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:execution.failure.guard@1.0.0
+    contractContentDigest: sha256:2f5bffc59d39be82683c73726b6fecfb7ea8491e1ed52904f23dc5f465418faf
+
+  - key: feedback-learning
+    capability: learning.system-evolution.stage
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Convert trusted recurring or explicitly durable feedback into counter-aware patterns and hash-bound disabled experiments, while capture remains body-free and validated outcomes require trusted evidence linked to the exact experiment.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: feedback-learning
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Convert trusted recurring or explicitly durable feedback into counter-aware patterns and hash-bound disabled experiments, while capture remains body-free and validated outcomes require trusted evidence linked to the exact experiment.
+    nonGoals: [treat ordinary preference wording as consent, copy raw or credential-bearing feedback, accept invented validation evidence, approve a staged file that differs from its ledger digest, apply or publish a ChangeSet, claim sole causality from correlation]
+    triggers:
+      positive: [review recurring feedback, include authorized third-party feedback, grow existing Skills and workflow connections from accumulated evidence]
+      negative: [ordinary request containing a preference, silent behavior profiling, immediate one-off coaching]
+    dependencies:
+      capabilities: [review.adversarial.run]
+      components: [store.feedback-ledger, registry.skill-validator, policy.approval]
+    interfaces:
+      inputs: [{name: feedbackEvidence, type: ledger-ref}]
+      outputs:
+        - {name: improvementPattern, type: evidence-ref}
+        - {name: disabledProposal, type: artifact-ref}
+        - {name: experimentEvaluation, type: evidence-ref}
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [feedback-ledger-events, counter-evidence, boundary-evidence, maturity-gate, capability-registry]
+      writes:
+        - {domain: feedback-curation-state, mode: mutate}
+        - {domain: skill-evolution-staging, mode: mutate}
+      ownerOf: [feedback-curation-state, skill-evolution-staging]
+    completion:
+      proof: [trusted provenance and support counter and boundary references retained, smallest intervention surface recorded, proposal remains disabled and matches its ledger digest, verification evidence resolves to the exact experiment, exact approval boundary and causal uncertainty preserved]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [explicit-signal-precision, authenticated-body-free-capture, evidence-lineage, preparation-routing, privacy-boundary, approval-staleness, causal-claim-boundary]
+    maturity: beta
+    version: 2.2.0
+    contractFingerprint: contract-v2:learning.system-evolution.stage@2.2.0
+    contractContentDigest: sha256:1e65a6dee2c6f21d737c8878f99a0055aefbd3af9aed81d1271e6453d33e677b
+
+  - key: gan
+    capability: review.adversarial.run
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Run bounded blind-separated adversarial reviews and evidence-based adjudication with independent agents.'
+    entrypoint: explicit
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: gan
+    secondaryCapabilities: []
+    source: local
+    path: gan
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Run bounded blind-separated adversarial reviews and evidence-based adjudication with independent agents.
+    nonGoals: [ordinary single-reviewer critique, generative-adversarial-network training]
+    triggers:
+      positive: [$gan, multi-agent adversarial review]
+      negative: [ordinary review, implementation delegation without adversarial analysis]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: reviewTarget, type: artifact-ref}, {name: reviewConfig, type: config-ref}]
+      outputs: [{name: adjudicatedFindings, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [review-target]
+      writes: [{domain: adversarial-review-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [requested independent passes returned, adjudication maps claims to evidence]
+      verifier: self
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [blind-separation, evidence-adjudication, reviewer-diversity]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:review.adversarial.run@1.0.0
+    contractContentDigest: sha256:2f99a7be3300fefd277cc701cfabbbd35bc19dfef4f4b60702f17d270897f3df
+
+  - key: harvest-components
+    capability: reuse.component.harvest
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Create rights-aware clean-room reusable Web components from explicitly authorized project evidence.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: harvest-components
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Create rights-aware clean-room reusable Web components from explicitly authorized project evidence.
+    nonGoals: [copy project-specific code or assets, infer legal permission from abstraction]
+    triggers:
+      positive: [reuse a prior component, harvest reusable technical behavior]
+      negative: [copy unauthorized code, reuse branded content]
+    dependencies: {capabilities: [], components: [policy.approval]}
+    interfaces:
+      inputs: [{name: authorizedSource, type: source-ref}, {name: behaviorContract, type: artifact-ref}]
+      outputs: [{name: reusablePackage, type: package-ref}, {name: provenance, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write, state-mutate]}
+    data:
+      reads: [authorized-project-source]
+      writes:
+        - {domain: reuse-package-artifacts, mode: artifact}
+        - {domain: reuse-component-catalog, mode: mutate}
+      ownerOf: [reuse-component-catalog]
+    completion:
+      proof: [rights evidence, clean-room tests, exact registration approval, consumer audit]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [provenance-integrity, clean-room-boundary, consumer-build]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:reuse.component.harvest@1.0.0
+    contractContentDigest: sha256:f3c268a006b124833d111cbf68955863773a5a093838dfb7bc57a7ce0b4d788c
+
+  - key: hatch-pet
+    capability: creative.pet.hatch
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Create, repair, visually validate, and package Codex-compatible animated pet assets.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: hatch-pet
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Create, repair, visually validate, and package Codex-compatible animated pet assets.
+    nonGoals: [reuse protected brand assets without permission, skip animation validation]
+    triggers:
+      positive: [create a Codex pet, repair or package an animated pet spritesheet]
+      negative: [generic illustration with no pet package, unauthorized brand copying]
+    dependencies: {capabilities: [image.generate], components: []}
+    interfaces:
+      inputs: [{name: characterBrief, type: intent-ref}, {name: sourceArt, type: source-ref}]
+      outputs: [{name: petPackage, type: package-ref}, {name: visualQa, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [character-source-art]
+      writes: [{domain: pet-package-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [animation validation, package validation, visual QA contact sheet]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [atlas-integrity, animation-qa, package-schema]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:creative.pet.hatch@1.0.0
+    contractContentDigest: sha256:898a1d8ea17653bc5324557442bb64ac820d07eae9da5c22018628dcfd62d2c4
+
+  - key: implement-v2-work
+    capability: project.kyoryokutai-v2.implement
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Implement and verify changes in the kyoryokutai_support v2 application under its repository-specific safeguards.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: implement-v2-work
+    exposure: {surface: project-local, invocation: explicit-only, migrationState: relocate-to-project}
+    responsibility: Implement and verify changes in the kyoryokutai_support v2 application under its repository-specific safeguards.
+    nonGoals: [operate outside the v2 project, bypass lineage or migration collision checks]
+    triggers:
+      positive: [implement or fix work under kyoryokutai_support v2, review v2 changes]
+      negative: [unrelated repository work, generic application implementation]
+    dependencies:
+      capabilities: [runtime.powershell.preflight, quality.e2e.rerun-changed]
+      components: []
+    interfaces:
+      inputs: [{name: selectedTask, type: task-ref}, {name: projectState, type: project-ref}]
+      outputs: [{name: verifiedChange, type: artifact-ref}, {name: completionEvidence, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [kyoryokutai-v2-source, v2-project-documents]
+      writes: [{domain: kyoryokutai-v2-workspace, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [task acceptance criteria verified, migration and lineage checks passed, documents synchronized]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [lineage-preflight, migration-collision, task-evidence]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:project.kyoryokutai-v2.implement@1.0.0
+    contractContentDigest: sha256:318f7acfe1361f1fb5450eb657a4c6cc598834fcf937e295a583b4188a6385ac
+
+  - key: persona-journey
+    capability: requirements.persona.simulate
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Simulate stakeholder journeys through current requirements and extract traceable product implications.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: persona-journey
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Simulate stakeholder journeys through current requirements and extract traceable product implications.
+    nonGoals: [marketing persona generation alone, fictional storytelling unrelated to decisions]
+    triggers:
+      positive: [simulate current user experience, pressure-test requirements through personas]
+      negative: [marketing copy persona, story without requirement extraction]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: currentRequirements, type: artifact-ref}, {name: stakeholderContext, type: intent-ref}]
+      outputs: [{name: personaJourneys, type: report-ref}, {name: requirementFindings, type: decision-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [product-requirements, stakeholder-evidence]
+      writes: [{domain: persona-journey-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [stakeholder coverage, facts and assumptions separated, requirements trace to scenes]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [stakeholder-coverage, traceable-requirements, assumption-labeling]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:requirements.persona.simulate@1.0.0
+    contractContentDigest: sha256:3bc9d3009c90c5fe1a769075a22be5f6dfbbd9f56c478ef8844bb22671e53bb7
+
+  - key: phase-gate-manager
+    capability: project.phase.govern
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Govern phase-specific requirements and evidence-based Go, Hold, Rework, or Kill transitions.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: phase-gate-manager
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Govern phase-specific requirements and evidence-based Go, Hold, Rework, or Kill transitions.
+    nonGoals: [advance a phase from plans alone, erase prior phase evidence]
+    triggers:
+      positive: [phase gate review, Discovery PoC MVP Product Extension requirements]
+      negative: [simple task status update, arbitrary date-based phase promotion]
+    dependencies:
+      capabilities: [task.progress.verify]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: phaseContract, type: artifact-ref}, {name: gateEvidence, type: evidence-ref}]
+      outputs: [{name: phaseDecision, type: decision-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [phase-requirements, pm-project-state]
+      writes: [{domain: product-phase-state, mode: mutate}]
+      ownerOf: [product-phase-state]
+    completion:
+      proof: [exit criteria mapped to fresh evidence, transition decision recorded]
+      verifier: capability:task.progress.verify
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [gate-evidence-coverage, transition-safety]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:project.phase.govern@1.0.0
+    contractContentDigest: sha256:71d5463f7ceb692d42cc81c3d3375cad390ab0090741537e3c7e9870f387db85
+
+  - key: powershell-preflight
+    capability: runtime.powershell.preflight
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Validate Windows PowerShell 5.1 compatibility, encoding, quoting, interpolation, and automation hazards before execution.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: powershell-preflight
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Validate Windows PowerShell 5.1 compatibility, encoding, quoting, interpolation, and automation hazards before execution.
+    nonGoals: [execute destructive commands, claim compatibility without parse or isolated evidence]
+    triggers:
+      positive: [author or edit PowerShell, nested quoting or Japanese text in a Windows command]
+      negative: [non-PowerShell shell work, already verified unchanged script]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: powershellSource, type: source-ref}, {name: targetShell, type: config-ref}]
+      outputs: [{name: preflightResult, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [powershell-source]
+      writes: [{domain: powershell-preflight-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [target shell parses or isolated execution succeeds, encoding requirement verified]
+      verifier: self
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [powershell51-parse, encoding-roundtrip, quoting-fixtures]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:runtime.powershell.preflight@1.0.0
+    contractContentDigest: sha256:f7656e12a72d52a00fd11f80b4a67a4a388935da765480335000f5aaebafa784
+
+  - key: quality-protocol
+    capability: quality.implementation.gate
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Apply additional review and verification gates to non-trivial coding changes while the capability is evaluated.'
+    entrypoint: explicit
+    invocationPolicy: deprecated
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: quality-protocol
+    exposure: {surface: public, invocation: explicit-only, migrationState: legacy-compatibility}
+    compatibilityTarget: build-complete-app
+    responsibility: Apply additional review and verification gates to non-trivial coding changes while the capability is evaluated.
+    nonGoals: [replace project-specific acceptance criteria, require nonexistent reviewers]
+    triggers:
+      positive: [non-trivial coding implementation, bugfix with material risk]
+      negative: [read-only explanation, trivial text edit]
+    dependencies:
+      capabilities: [review.adversarial.run, quality.e2e.rerun-changed]
+      components: []
+    interfaces:
+      inputs: [{name: proposedChange, type: artifact-ref}, {name: acceptanceCriteria, type: evidence-ref}]
+      outputs: [{name: gatedResult, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [implementation-change, acceptance-criteria]
+      writes: [{domain: quality-gate-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [applicable gates mapped to evidence, unsupported gates reported rather than invented]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [gate-applicability, false-block-rate]
+    maturity: deprecated
+    version: 0.1.0
+    contractFingerprint: contract-v2:quality.implementation.gate@0.1.0
+    contractContentDigest: sha256:9dab4a7bc8e9fed8ca211b6f9e762ac29800dbbd69fa5b00a90789c63cbcfc9f
+
+  - key: remembering-conversations
+    capability: memory.conversation.retrieve
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Retrieve relevant prior conversation evidence before guessing or treating an established topic as new.'
+    entrypoint: explicit
+    invocationPolicy: deprecated
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: remembering-conversations
+    exposure: {surface: public, invocation: explicit-only, migrationState: legacy-compatibility}
+    compatibilityTarget: episodic-memory:remembering-conversations
+    responsibility: Retrieve relevant prior conversation evidence before guessing or treating an established topic as new.
+    nonGoals: [fabricate missing memory, replace the external episodic-memory provider]
+    triggers:
+      positive: [prior decision may exist, context appears missing]
+      negative: [current context already contains authoritative answer, request forbids retrieval]
+    dependencies: {capabilities: [memory.episodic.retrieve], components: []}
+    interfaces:
+      inputs: [{name: currentTopic, type: intent-ref}]
+      outputs: [{name: episodicEvidence, type: evidence-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [conversation-memory-index]
+      writes: []
+      ownerOf: []
+    completion:
+      proof: [retrieval attempted before unknown or guess claim, uncertainty preserved]
+      verifier: self
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [retrieval-before-guess, uncertainty-calibration]
+    maturity: deprecated
+    version: 1.0.0
+    contractFingerprint: contract-v2:memory.conversation.retrieve@1.0.0
+    contractContentDigest: sha256:6b3f6d5c25e22fdd3acf259b19830597fea29cb6dfce0fb2ded41451d11400be
+
+  - key: rerun-changed-e2e
+    capability: quality.e2e.rerun-changed
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Revalidate only behavior changed since a verified baseline with real browser, HTTP, and persistence evidence.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: rerun-changed-e2e
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Revalidate only behavior changed since a verified baseline with real browser, HTTP, and persistence evidence.
+    nonGoals: [reuse stale evidence as proof, rerun unaffected coverage without reason]
+    triggers:
+      positive: [retest recent changes, rerun changed E2E checks]
+      negative: [no verified baseline, full exploratory QA request]
+    dependencies: {capabilities: [browser.control], components: []}
+    interfaces:
+      inputs: [{name: verifiedBaseline, type: evidence-ref}, {name: changedBehavior, type: artifact-ref}]
+      outputs: [{name: regressionEvidence, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [source-diff, verified-e2e-baseline]
+      writes: [{domain: e2e-evidence-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [changed behavior mapped to tests, real HTTP and persistence verified where applicable]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [change-coverage, stale-baseline-rejection, viewport-evidence]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:quality.e2e.rerun-changed@1.0.0
+    contractContentDigest: sha256:36515cbaef0aa1c8a9d187d4a1052b228cba7e4ebe5a032d112b9e88608328db
+
+  - key: research-alignment-deep-research
+    capability: research.deep.align-execute
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Align and execute rigorous Web research with explicit depth, coverage, and evidence standards.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: research-alignment-deep-research
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Align and execute rigorous Web research with explicit depth, coverage, and evidence standards.
+    nonGoals: [present shallow link lists as deep research, treat undisclosed facts as disproven]
+    triggers:
+      positive: [deep research, industry or company mapping with evidence standards]
+      negative: [quick stable fact lookup, research without a defined deliverable]
+    dependencies:
+      capabilities: [project.roadmap.render]
+      components: []
+    interfaces:
+      inputs: [{name: researchContract, type: intent-ref}]
+      outputs: [{name: researchSynthesis, type: report-ref}, {name: claimRegister, type: evidence-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [authoritative-web-sources]
+      writes: [{domain: research-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [coverage gates pass, claims pass source-verification gate, independent source families or documented exception, contradiction search recorded, uncertainty and freshness classified]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [coverage-gates, primary-source-rate, uncertainty-classification]
+    maturity: beta
+    version: 1.1.0
+    contractFingerprint: contract-v2:research.deep.align-execute@1.1.0
+    contractContentDigest: sha256:fbc9fadf768cb131aef903c4ccf3459c79e1e8a10a5657d40db106d1b8137b07
+
+  - key: run-ai-consulting-sales
+    capability: sales.ai-consulting.run
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Prepare, conduct, close, and retrospect AI consulting sales meetings with commercially complete terms.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: run-ai-consulting-sales
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Prepare, conduct, close, and retrospect AI consulting sales meetings with commercially complete terms.
+    nonGoals: [send commitments without approval, hide feasibility or client burden]
+    triggers:
+      positive: [AI consulting sales preparation, scope price effort and next-step design]
+      negative: [generic marketing copy, autonomous external negotiation]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: opportunityContext, type: source-ref}, {name: commercialConstraints, type: config-ref}]
+      outputs: [{name: salesBrief, type: artifact-ref}, {name: nextSteps, type: decision-ref}]
+    authority: {default: deny, effects: [read, workspace-write, external-propose]}
+    data:
+      reads: [sales-opportunity-evidence]
+      writes: [{domain: sales-brief-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [scope price effort term and client burden covered, next step and owner explicit]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [commercial-completeness, feasibility-boundary, next-step-clarity]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:sales.ai-consulting.run@1.0.0
+    contractContentDigest: sha256:03997bef8f40b281e372ebff6ca388b68015d31823548d575d35b5ba4d046a48
+
+  - key: skill-telemetry
+    capability: observability.skill.inspect
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Record and inspect privacy-preserving Skill lifecycle quality, fingerprint-scoped evidence, and append-only Skill evolution history; permit verified success only for an eligible returned run when every supplied reference resolves to trusted, passed, uniquely linked completion, authority, and domain-verdict evidence.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: skill-telemetry
+    secondaryCapabilities: []
+    source: local
+    path: skill-telemetry
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Record and inspect privacy-preserving Skill lifecycle quality, fingerprint-scoped evidence, and append-only Skill evolution history; permit verified success only for an eligible returned run when every supplied reference resolves to trusted, passed, uniquely linked completion, authority, and domain-verdict evidence.
+    nonGoals: [store prompt or response bodies, equate returned response with success, accept invented or cross-run evidence references, fan one evidence item out to multiple candidate runs]
+    triggers:
+      positive: [inspect Skill usage or health, evaluate Skill outcomes]
+      negative: [ordinary task with no telemetry question, infer user sentiment from silence]
+    dependencies: {capabilities: [], components: [store.skill-telemetry]}
+    interfaces:
+      inputs: [{name: lifecycleMetadata, type: evidence-ref}]
+      outputs: [{name: telemetryReport, type: report-ref}, {name: skillLineage, type: ledger-ref}, {name: skillAtlas, type: artifact-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [skill-telemetry-state]
+      writes: [{domain: skill-telemetry-state, mode: mutate}]
+      ownerOf: [skill-telemetry-state]
+    completion:
+      proof: [deduplicated lifecycle record, evidence linked to exactly one eligible run, every supplied verified-success reference resolved to trusted passed evidence uniquely linked to that returned run, failed interrupted fan-out cross-run invented and time-ambiguous evidence rejected, duration quality and end reason retained, observed Skill snapshots hash-bound to file manifests and registry contracts, reconstructed history explicitly marked inferred, interactive atlas derived from canonical lineage and dependency data, privacy contract preserved, collector remained fail-open]
+      verifier: self
+      acceptedEvidence: [test, build, validate, artifact, domain-verdict, explicit-feedback, authority]
+    failure:
+      maxEquivalentAttempts: 1
+      retry: repair-without-blocking-original-work
+      route: fail-open-health-record
+    telemetry: *telemetry
+    evals: [collector-deduplication, privacy-contract, evidence-link-uniqueness, lifecycle-quality, domain-verdict-outcome-v2, lineage-deduplication, historical-provenance-boundary, atlas-network-completeness, atlas-responsive-ux]
+    maturity: beta
+    version: 2.3.0
+    contractFingerprint: contract-v2:observability.skill.inspect@2.3.0
+    contractContentDigest: sha256:31b562ef1fa52e949e1c26211daf8d302b9d8fdc51270bfe7ca1f7cb26a82d10
+
+  - key: ui-ux-pro-max
+    capability: design.uiux.advise
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Provide searchable UI and UX design guidance applicable to the current product constraints.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: ui-ux-pro-max
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Provide searchable UI and UX design guidance applicable to the current product constraints.
+    nonGoals: [replace real viewport validation, ignore repository UX instructions]
+    triggers:
+      positive: [UI design guidance, UX review or design system selection]
+      negative: [backend-only implementation, aesthetic advice without product context]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: uiContext, type: artifact-ref}, {name: uxConstraints, type: config-ref}]
+      outputs: [{name: designGuidance, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [uiux-reference-database, project-ux-constraints]
+      writes: [{domain: uiux-guidance-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [guidance mapped to context and constraints, visual application remains independently verified]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [constraint-fit, guidance-traceability]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:design.uiux.advise@1.0.0
+    contractContentDigest: sha256:e80e130ae627c2d27aeb0d5633bea34006c9a99c4b5ea7f0ac22ae684c5a8cfb
+
+  - key: windows-performance-triage
+    capability: operations.windows.triage
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Diagnose Windows load and safely reduce verified performance causes while separating malware warning signs.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: windows-performance-triage
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Diagnose Windows load and safely reduce verified performance causes while separating malware warning signs.
+    nonGoals: [claim the machine is malware-free, stop an unverified active process]
+    triggers:
+      positive: [PC is slow or heavy, diagnose runaway PowerShell Node or Codex processes]
+      negative: [unrelated application bug, destructive cleanup without process evidence]
+    dependencies:
+      capabilities: [runtime.powershell.preflight, execution.failure.guard]
+      components: []
+    interfaces:
+      inputs: [{name: systemEvidence, type: evidence-ref}, {name: authorizedTargets, type: config-ref}]
+      outputs: [{name: diagnosis, type: report-ref}, {name: remediationEvidence, type: evidence-ref}]
+    authority: {default: deny, effects: [read, external-execute]}
+    data:
+      reads: [windows-process-state, windows-resource-state]
+      writes: [{domain: performance-triage-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [before and after load evidence, exact stopped targets recorded, uncertainty retained]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [orphan-classification, before-after-load, malware-claim-boundary]
+    maturity: beta
+    version: 1.0.0
+    contractFingerprint: contract-v2:operations.windows.triage@1.0.0
+    contractContentDigest: sha256:cca8cedce692dca99153d7af7ae08f555818100a0717ffad2639dc388f3c7a2c
+
+  - key: ai-project-manager:evidence-project-planner
+    capability: project.plan.evidence
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Convert verified project evidence and intent into outcome milestones, dependencies, tasks, and acceptance criteria.'
+    entrypoint: project
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: evidence-project-planner
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Convert verified project evidence and intent into outcome milestones, dependencies, tasks, and acceptance criteria.
+    nonGoals: [execute tasks, mark work complete]
+    triggers:
+      positive: [orchestrator requests evidence-based planning, material project replan]
+      negative: [direct implementation, unverified brainstorming alone]
+    dependencies:
+      capabilities: [project.observe]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: projectEvidence, type: evidence-ref}, {name: objective, type: intent-ref}]
+      outputs: [{name: planProposal, type: task-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [pm-project-state, project-evidence]
+      writes: [{domain: project-plan-proposals, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [milestones trace to objective, dependencies and acceptance criteria are explicit]
+      verifier: capability:project.orchestrate
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [objective-traceability, dependency-validity, executable-task-quality]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.plan.evidence@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:e5d44da69a162e796a97aee1c0b2fcca2bcebb8b5c755845f8e3c667e248536a
+
+  - key: ai-project-manager:human-task-requester
+    capability: task.human.request
+    primaryCategory: session-human-interface
+    primaryResponsibility: 'Turn human-only or human-authorized work into one concise and executable request.'
+    entrypoint: human
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: human-task-requester
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Turn human-only or human-authorized work into one concise and executable request.
+    nonGoals: [ask for decisions that do not affect outcome, notify a person without authorization]
+    triggers:
+      positive: [router selects human work, consequential approval is required]
+      negative: [safe reversible AI work, informational update with no action]
+    dependencies: {capabilities: [], components: [queue.pm-human]}
+    interfaces:
+      inputs: [{name: humanWork, type: task-ref}, {name: preparedContext, type: artifact-ref}]
+      outputs: [{name: humanRequest, type: task-ref}]
+    authority: {default: deny, effects: [read, external-propose]}
+    data:
+      reads: [pm-project-state]
+      writes: [{domain: human-request-proposals, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [reason effort deadline completion signal and delay impact are explicit]
+      verifier: capability:project.orchestrate
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [request-completeness, user-decision-cost]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:task.human.request@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:eed52a38042b67132b845a517b173033dd30b9e362f441c3d315f71cea33c0a7
+
+  - key: ai-project-manager:pm-settings
+    capability: project.automation.configure
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Configure Mira-managed projects, automation cadence, execution level, and current project-manager state.'
+    entrypoint: project
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: pm-settings
+    exposure: {surface: public, invocation: implicit, migrationState: legacy-packaged}
+    responsibility: Configure Mira-managed projects, automation cadence, execution level, and current project-manager state.
+    nonGoals: [advance project tasks, silently enable automation]
+    triggers:
+      positive: [$pm-settings, configure or stop project automation]
+      negative: [ordinary project status request, task implementation]
+    dependencies: {capabilities: [], components: [settings.pm, scheduler.pm]}
+    interfaces:
+      inputs: [{name: settingsIntent, type: intent-ref}]
+      outputs: [{name: savedSettings, type: config-ref}, {name: settingsStatus, type: report-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [pm-automation-settings]
+      writes: [{domain: pm-automation-settings, mode: mutate}]
+      ownerOf: [pm-automation-settings]
+    completion:
+      proof: [saved settings read back, schedule state matches requested automation]
+      verifier: human
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [settings-roundtrip, schedule-state, safe-stop]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.automation.configure@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:0d4bf14d7d002d3ca7bd46370ef37dc409ae8f06cc2fe9f294b49608516f059a
+
+  - key: ai-project-manager:progress-verifier
+    capability: task.progress.verify
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Verify task and milestone completion from fresh observable evidence before dependencies unlock.'
+    entrypoint: project
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: ai-project-manager:progress-verifier
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: progress-verifier
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Verify task and milestone completion from fresh observable evidence before dependencies unlock.
+    nonGoals: [mark persistent task status directly, accept agent self-report as proof]
+    triggers:
+      positive: [orchestrator receives completion claim, phase exit requires verification]
+      negative: [task planning, work without acceptance criteria]
+    dependencies:
+      capabilities: [project.observe]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: completionClaim, type: task-ref}, {name: evidence, type: evidence-ref}]
+      outputs: [{name: verificationDecision, type: decision-ref}]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [pm-project-state, project-evidence]
+      writes: [{domain: pm-verification-records, mode: append}]
+      ownerOf: []
+    completion:
+      proof: [each acceptance criterion maps to fresh evidence, partial and stale outcomes identified]
+      verifier: capability:project.orchestrate
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [false-success-rejection, evidence-freshness, criteria-coverage]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:task.progress.verify@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:af06ad67a8040d2947e9f27030bc8a7648cd64e9fc53fb89635d0cbd693249a7
+
+  - key: ai-project-manager:project-check
+    capability: project.documents.check
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Diagnose required project documents, applicable instructions, phase contracts, and ledger consistency.'
+    entrypoint: project
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: project-check
+    exposure: {surface: public, invocation: implicit, migrationState: legacy-packaged}
+    responsibility: Diagnose required project documents, applicable instructions, phase contracts, and ledger consistency.
+    nonGoals: [rewrite documents without approval, treat missing optional profiles as blocking]
+    triggers:
+      positive: [$project-check, check whether project documentation is complete]
+      negative: [implement project work, generic file listing]
+    dependencies: {capabilities: [], components: [adapter.pm-ledger]}
+    interfaces:
+      inputs: [{name: projectTarget, type: project-ref}]
+      outputs: [{name: documentHealth, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [project-documents, project-instructions, pm-project-state]
+      writes: [{domain: project-check-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [required profile evaluated, missing stale and conflicting records identified]
+      verifier: human
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [profile-applicability, stale-proposal-detection, ledger-consistency]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.documents.check@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:30cc9d71a497fa5e788b214b35f164ca4de3698fb92d18a60b0d3eccc4b0d3fa
+
+  - key: ai-project-manager:project-normalizer
+    capability: project.documents.normalize
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Normalize project README, roadmap, and task documents without destroying existing evidence or intent.'
+    entrypoint: project
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: project-normalizer
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Normalize project README, roadmap, and task documents without destroying existing evidence or intent.
+    nonGoals: [overwrite unresolved proposals, invent project facts]
+    triggers:
+      positive: [orchestrator approves document normalization, project-check finds repairable drift]
+      negative: [document diagnosis only, destructive rewrite]
+    dependencies:
+      capabilities: [project.documents.check]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: documentHealth, type: report-ref}, {name: approvedScope, type: config-ref}]
+      outputs: [{name: normalizedDocuments, type: artifact-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [project-documents, pm-project-state]
+      writes: [{domain: project-document-workspace, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [existing evidence preserved, normalized files pass profile validation]
+      verifier: capability:project.documents.check
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [evidence-preservation, idempotent-normalization]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.documents.normalize@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:4e1dd8b58a111fc233c870c57588e24d9b25c8e11952b4a809b396f82a631783
+
+  - key: ai-project-manager:project-observer
+    capability: project.observe
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Collect fresh read-only evidence about managed projects and identify meaningful changes, risks, and stale plans.'
+    entrypoint: project
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: project-observer
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Collect fresh read-only evidence about managed projects and identify meaningful changes, risks, and stale plans.
+    nonGoals: [change project state, infer completion without verification]
+    triggers:
+      positive: [orchestrator observation pass, scheduled managed-project inspection]
+      negative: [task implementation, user asks for an unverified status guess]
+    dependencies: {capabilities: [], components: [adapter.pm-ledger]}
+    interfaces:
+      inputs: [{name: projectTargets, type: project-ref}]
+      outputs: [{name: observationSnapshot, type: evidence-ref}]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [registered-projects, repository-state, pm-project-state]
+      writes: [{domain: pm-observation-records, mode: append}]
+      ownerOf: []
+    completion:
+      proof: [source timestamps are fresh, observations link to evidence references]
+      verifier: capability:project.orchestrate
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [freshness, change-signal-precision, evidence-linkage]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.observe@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:126b059befca080bdc72fc559ce3c090c03cbfa8c45ee10edb94b801f1ed2435
+
+  - key: ai-project-manager:project-orchestrator
+    capability: project.orchestrate
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Act as the single project commander that maintains canonical state and coordinates temporary specialists.'
+    entrypoint: project
+    invocationPolicy: implicit
+    delegatesTo: ['ai-project-manager:project-check', 'ai-project-manager:evidence-project-planner', 'ai-project-manager:task-router', 'adaptive-orchestrator', 'ai-project-manager:human-task-requester', 'ai-project-manager:progress-verifier']
+    stateOwner: ai-project-manager:project-orchestrator
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: project-orchestrator
+    exposure: {surface: public, invocation: implicit, migrationState: legacy-packaged}
+    responsibility: Act as the single project commander that maintains canonical state and coordinates temporary specialists.
+    nonGoals: [delegate commander ownership, mark work complete without verification]
+    triggers:
+      positive: [project management or monitoring, automatically advance safe project work]
+      negative: [isolated specialist task with no project-management request, irreversible action without approval]
+    dependencies:
+      capabilities:
+        - project.observe
+        - project.plan.evidence
+        - task.route
+        - task.progress.verify
+        - task.human.remind
+        - project.phase.govern
+      components: [adapter.pm-ledger, resolver.capability, policy.approval]
+    interfaces:
+      inputs: [{name: projectIntent, type: intent-ref}, {name: freshEvidence, type: evidence-ref}]
+      outputs: [{name: ledgerTransition, type: ledger-ref}, {name: prioritizedHumanQueue, type: task-ref}]
+    authority: {default: deny, effects: [read, state-mutate, external-propose]}
+    data:
+      reads: [pm-project-state, project-evidence, pm-automation-settings]
+      writes: [{domain: pm-project-state, mode: mutate}]
+      ownerOf: [pm-project-state]
+    completion:
+      proof: [persistent state reflects verified outcomes, only consequential human work is surfaced]
+      verifier: capability:task.progress.verify
+      acceptedEvidence: [pm-verified-task, artifact, validate, explicit-feedback, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [outcome-v2, single-commander, verified-completion, human-queue-cost]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:project.orchestrate@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:92d42dd2e22777650f3b96f33cf2a7bc590627da9d3d02e2047f309e627f38a6
+
+  - key: ai-project-manager:reminder-escalator
+    capability: task.human.remind
+    primaryCategory: session-human-interface
+    primaryResponsibility: 'Create proportionate non-duplicative reminders for waiting, blocked, and overdue human work.'
+    entrypoint: human
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: reminder-escalator
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Create proportionate non-duplicative reminders for waiting, blocked, and overdue human work.
+    nonGoals: [spam repeated reminders, send reminders without authorization]
+    triggers:
+      positive: [orchestrator reviews overdue human queue, blocked dependency needs escalation]
+      negative: [work is not due, prior equivalent reminder is still current]
+    dependencies:
+      capabilities: [task.human.request]
+      components: [queue.pm-human, adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: waitingTasks, type: task-ref}, {name: notificationHistory, type: evidence-ref}]
+      outputs: [{name: reminderProposal, type: task-ref}]
+    authority: {default: deny, effects: [read, external-propose, state-append]}
+    data:
+      reads: [pm-human-queue-state, pm-project-state]
+      writes: [{domain: pm-reminder-records, mode: append}]
+      ownerOf: []
+    completion:
+      proof: [deadline dependency impact and prior notices considered, duplicates suppressed]
+      verifier: capability:project.orchestrate
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [duplicate-suppression, escalation-proportionality]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:task.human.remind@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:8da82fbd343650196b549961751f530040f22bd8ac4d908397adeb526cbf9e4d
+
+  - key: ai-project-manager:task-router
+    capability: task.route
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Route ready work to an AI agent, human, or service by capability, authority, reversibility, risk, and cost.'
+    entrypoint: project
+    invocationPolicy: orchestrator-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: ai-project-manager
+    path: task-router
+    exposure: {surface: internal, invocation: orchestrator-only, migrationState: legacy-packaged}
+    responsibility: Route ready work to an AI agent, human, or service by capability, authority, reversibility, risk, and cost.
+    nonGoals: [execute routed work, expand task authority]
+    triggers:
+      positive: [orchestrator has a ready task, assignee authority must be determined]
+      negative: [task dependencies are unresolved, task objective is ambiguous]
+    dependencies:
+      capabilities: [task.human.request]
+      components: [adapter.pm-ledger]
+    interfaces:
+      inputs: [{name: readyTask, type: task-ref}, {name: authorityBoundary, type: config-ref}]
+      outputs: [{name: routingDecision, type: decision-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [pm-project-state, capability-registry]
+      writes: [{domain: task-routing-proposals, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [assignee choice cites capability authority risk cost and fallback]
+      verifier: capability:project.orchestrate
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [authority-routing, human-only-detection, reversibility]
+    maturity: beta
+    version: 0.5.0+codex.20260728160100
+    contractFingerprint: contract-v2:task.route@0.5.0+codex.20260728160100
+    contractContentDigest: sha256:aaeaa3a32d9e44b453e78e0acaaff14b16e766a1d6fd033addbbecb71ec6d790
+
+  - key: self-clone:ask-my-clone
+    capability: clone.predict
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Predict how the user would judge, choose, explain, or draft in a specified context from active structured evidence.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: ask-my-clone
+    exposure: {surface: public, invocation: implicit, migrationState: legacy-packaged}
+    responsibility: Predict how the user would judge, choose, explain, or draft in a specified context from active structured evidence.
+    nonGoals: [approve on the user's behalf, present prediction as fact]
+    triggers:
+      positive: [how would I decide, draft the answer my clone would give]
+      negative: [authorize an irreversible action, answer without sufficient clone evidence]
+    dependencies:
+      capabilities: [clone.ledger.manage]
+      components: [adapter.clone-ledger]
+    interfaces:
+      inputs: [{name: decisionContext, type: intent-ref}, {name: activeProfile, type: profile-ref}]
+      outputs: [{name: clonePrediction, type: decision-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [clone-evidence-state, clone-profile-state]
+      writes: [{domain: clone-prediction-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [prediction cites judgment axes and uncertainty, abstains below evidence threshold]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [walk-forward-prediction, abstention-calibration, context-fit]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.predict@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:c005438f4c0f3b0f8919b048d683c91717363be8038d8403e6a5704056acf661
+
+  - key: self-clone:build-my-clone
+    capability: clone.build
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Coordinate collection, distillation, interviews, evaluation, and audits into a usable personal judgment clone.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: build-my-clone
+    exposure: {surface: public, invocation: implicit, migrationState: legacy-packaged}
+    responsibility: Coordinate collection, distillation, interviews, evaluation, and audits into a usable personal judgment clone.
+    nonGoals: [silently expand collection scope, treat raw user wording as the clone]
+    triggers:
+      positive: [build or improve my clone, assess clone readiness]
+      negative: [single clone prediction, unrelated user profiling]
+    dependencies:
+      capabilities: [clone.ledger.manage, clone.distill, clone.interview, clone.evaluate, clone.audit]
+      components: [adapter.clone-ledger, policy.approval]
+    interfaces:
+      inputs: [{name: cloneGoal, type: intent-ref}, {name: privacyScope, type: config-ref}]
+      outputs: [{name: cloneReadiness, type: report-ref}, {name: nextCloneStep, type: decision-ref}]
+    authority: {default: deny, effects: [read, external-propose]}
+    data:
+      reads: [clone-evidence-state, clone-profile-state, clone-evaluation-state]
+      writes: [{domain: clone-build-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [readiness reports evidence coverage and evaluation, next step minimizes user burden]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [readiness-calibration, privacy-scope, next-step-value]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.build@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:511ac3b7a38396506b52ce2c5208965ba58ef740ac8271aa40be15a54bab6cc3
+
+  - key: self-clone:clone-audit
+    capability: clone.audit
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Audit raw and derived clone evidence for AI influence, context loss, authorship errors, drift, and coverage gaps.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: clone-audit
+    exposure: {surface: internal, invocation: explicit-only, migrationState: legacy-packaged}
+    responsibility: Audit raw and derived clone evidence for AI influence, context loss, authorship errors, drift, and coverage gaps.
+    nonGoals: [reveal raw content without explicit scope, activate a profile]
+    triggers:
+      positive: [explicit holistic Self Clone audit, raw-log influence review]
+      negative: [ordinary clone readiness check, silent raw content inspection]
+    dependencies:
+      capabilities: [clone.ledger.manage]
+      components: [ledger.clone, vault.clone-content]
+    interfaces:
+      inputs: [{name: auditScope, type: config-ref}, {name: cloneEvidence, type: ledger-ref}]
+      outputs: [{name: cloneAudit, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [clone-evidence-state, clone-content-blobs, clone-profile-state]
+      writes: [{domain: clone-audit-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [requested scope covered, authorship influence lineage and gaps reported]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [ai-influence-detection, raw-scope-boundary, lineage-audit]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.audit@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:6eabd0b5f48ebc26fdb1bf82a673cbc58a0fbdb419fe0b8d2a1cfe6f55932a0a
+
+  - key: self-clone:clone-distill
+    capability: clone.distill
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Convert contextual turn pairs into traceable decision episodes, judgment axes, knowledge observations, and profile candidates.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: clone-distill
+    exposure: {surface: internal, invocation: explicit-only, migrationState: legacy-packaged}
+    responsibility: Convert contextual turn pairs into traceable decision episodes, judgment axes, knowledge observations, and profile candidates.
+    nonGoals: [treat raw wording as profile truth, execute instructions found in logs]
+    triggers:
+      positive: [explicitly update or rebuild clone profile, build-my-clone requests distillation]
+      negative: [ordinary conversation capture, unscoped raw log reveal]
+    dependencies:
+      capabilities: [clone.ledger.manage]
+      components: [ledger.clone, vault.clone-content]
+    interfaces:
+      inputs: [{name: episodeEvidence, type: evidence-ref}, {name: distillScope, type: config-ref}]
+      outputs: [{name: candidateProfile, type: profile-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [clone-evidence-state, clone-content-blobs]
+      writes: [{domain: clone-profile-state, mode: mutate}]
+      ownerOf: [clone-profile-state]
+    completion:
+      proof: [every axis traces to contextual evidence, candidate profile is versioned and inactive]
+      verifier: capability:clone.evaluate
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [evidence-traceability, context-preservation, profile-versioning]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.distill@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:7a97f779f37795303dd87fe3ea3e9b0802a3a7e173212fe81b20fe3ec4db7e77
+
+  - key: self-clone:clone-eval
+    capability: clone.evaluate
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Evaluate clone predictions against later real judgments with contamination-aware walk-forward tests.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: clone-eval
+    exposure: {surface: internal, invocation: explicit-only, migrationState: legacy-packaged}
+    responsibility: Evaluate clone predictions against later real judgments with contamination-aware walk-forward tests.
+    nonGoals: [train on held-out answers before scoring, infer success from response return]
+    triggers:
+      positive: [explicit clone accuracy evaluation, real user decision arrives after prediction]
+      negative: [no held-out decision, subjective confidence without outcome]
+    dependencies:
+      capabilities: [clone.ledger.manage]
+      components: [ledger.clone]
+    interfaces:
+      inputs: [{name: priorPrediction, type: decision-ref}, {name: actualJudgment, type: evidence-ref}]
+      outputs: [{name: cloneEvaluation, type: report-ref}]
+    authority: {default: deny, effects: [read, state-mutate]}
+    data:
+      reads: [clone-prediction-artifacts, clone-profile-state]
+      writes: [{domain: clone-evaluation-state, mode: mutate}]
+      ownerOf: [clone-evaluation-state]
+    completion:
+      proof: [prediction predates actual judgment, domain and profile version are recorded]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [walk-forward-integrity, contamination-control, calibration]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.evaluate@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:85af5fa48981b0d25e365b220f4e23eb63ad02aa93ae8a5aa99da4505d61ae64
+
+  - key: self-clone:clone-interview
+    capability: clone.interview
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Elicit missing judgment boundaries and knowledge evidence through focused dilemmas and counterexamples.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: clone-interview
+    exposure: {surface: internal, invocation: explicit-only, migrationState: legacy-packaged}
+    responsibility: Elicit missing judgment boundaries and knowledge evidence through focused dilemmas and counterexamples.
+    nonGoals: [conduct broad personality testing, record unconfirmed AI inference as user evidence]
+    triggers:
+      positive: [explicitly improve uncertain clone coverage, resolve contradictory judgment evidence]
+      negative: [ordinary user question, interview without a known evidence gap]
+    dependencies:
+      capabilities: [clone.ledger.manage]
+      components: [ledger.clone]
+    interfaces:
+      inputs: [{name: evidenceGap, type: report-ref}, {name: interviewScope, type: config-ref}]
+      outputs: [{name: confirmedEvidence, type: evidence-ref}]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [clone-profile-state, clone-evidence-state]
+      writes: [{domain: clone-interview-evidence, mode: append}]
+      ownerOf: []
+    completion:
+      proof: [questions target a defined gap, only user-confirmed contextual evidence is recorded]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [question-information-gain, confirmation-boundary, user-effort]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.interview@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:8b21a185e9de078b2e1680de844b591167a9a943258053517e635fbb56928f82
+
+  - key: self-clone:clone-ledger
+    capability: clone.ledger.manage
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Manage the private encrypted clone archive, evidence lineage, exclusions, deletion, import, and collection state.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: self-clone
+    path: clone-ledger
+    exposure: {surface: internal, invocation: explicit-only, migrationState: legacy-packaged}
+    responsibility: Manage the private encrypted clone archive, evidence lineage, exclusions, deletion, import, and collection state.
+    nonGoals: [reveal raw content without explicit request, silently enable capture]
+    triggers:
+      positive: [explicitly inspect configure import correct or delete clone data, clone subsystem requests ledger access]
+      negative: [ordinary conversation, unrelated memory retrieval]
+    dependencies: {capabilities: [], components: [ledger.clone, vault.clone-content, policy.approval]}
+    interfaces:
+      inputs: [{name: ledgerOperation, type: intent-ref}, {name: privacyScope, type: config-ref}]
+      outputs: [{name: ledgerResult, type: ledger-ref}]
+    authority: {default: deny, effects: [read, state-mutate, destructive]}
+    data:
+      reads: [clone-evidence-state, clone-content-blobs]
+      writes: [{domain: clone-evidence-state, mode: mutate}]
+      ownerOf: [clone-evidence-state]
+    completion:
+      proof: [operation read back from ledger, derived invalidation and privacy boundary verified]
+      verifier: human
+    failure: *noRetryFailure
+    telemetry: *telemetry
+    evals: [encryption-roundtrip, deletion-invalidation, capture-consent]
+    maturity: beta
+    version: 0.2.0+codex.20260729000000
+    contractFingerprint: contract-v2:clone.ledger.manage@0.2.0+codex.20260729000000
+    contractContentDigest: sha256:f8533986bf2d7a1d3ce204cee4a87f78d8b3bf53e2c09adb6f0cfc6a71aba75c
+
+  - key: govern-repository-layout
+    capability: repository.layout.govern
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Audit repository and workspace topology, draft a repository-specific layout policy and baseline, and produce a no-apply migration plan without moving or deleting files.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: govern-repository-layout
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Audit repository and workspace topology, draft a repository-specific layout policy and baseline, and produce a no-apply migration plan without moving or deleting files.
+    nonGoals: [move delete or rewrite repository paths, approve role assignments or exceptions for the user, impose one universal folder tree]
+    triggers:
+      positive: [audit repository layout, propose or validate folder-structure policy, plan a safe staged layout migration]
+      negative: [execute a repository reorganization, ordinary file search, project task planning]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: repositoryOrWorkspace, type: project-ref}, {name: existingPolicy, type: config-ref}]
+      outputs: [{name: layoutAudit, type: report-ref}, {name: proposedPolicy, type: artifact-ref}, {name: migrationPlan, type: plan-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [repository-tree, git-metadata, tracked-path-references, repository-layout-policy]
+      writes: [{domain: repository-layout-artifacts, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [scan and check are deterministic and leave repository source unchanged, protected external paths and dirty-worktree constraints are preserved, policy proposal baseline and migration plan state approval and rollback boundaries]
+      verifier: human
+      acceptedEvidence: [artifact, validate, explicit-feedback, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [git-root-detection, nested-workspace-detection, protected-external-boundary, baseline-new-violation, read-only-scan-check, migration-no-apply]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:repository.layout.govern@1.0.0
+    contractContentDigest: sha256:052cd8ef086a0baba66d8f08ccef62dd12e3daf2cde78e1400a9697d881fdfca
+
+  - key: name-work-sessions
+    capability: interaction.session.name
+    primaryCategory: session-human-interface
+    primaryResponsibility: 'Generate retrieval-friendly session names manually and coordinate privacy-bounded asynchronous main-thread naming from SessionEnd or a resume-only SessionStart recovery event through a body-free Hook, bounded semantic decision, official app-server mutation, and exact readback.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: name-work-sessions
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Generate retrieval-friendly session names manually and coordinate privacy-bounded asynchronous main-thread naming from SessionEnd or a resume-only SessionStart recovery event through a body-free Hook, bounded semantic decision, official app-server mutation, and exact readback.
+    nonGoals: [persist raw or full transcripts prompt bodies response bodies tool bodies or reasoning, edit Codex SQLite or internal databases directly, run semantic work or start a worker from a Hook, rename subagent sessions, rename ordinary fresh startups, overwrite an existing canonical name or a later manual override]
+    triggers:
+      positive: [name or rename a work session, create a durable searchable session title, configure or inspect SessionEnd plus resume-recovery automatic naming]
+      negative: [name a file instead of a session, subagent lifecycle event, ordinary SessionStart, thread switch without a supported lifecycle event, current title differs from the last verified automatic title]
+    dependencies:
+      capabilities: [execution.failure.guard]
+      components: [spool.learning-events, worker.unified-events, lock.local-process]
+    interfaces:
+      inputs: [{name: sessionContext, type: evidence-ref}, {name: sessionLifecycleEvent, type: event-ref}]
+      outputs: [{name: namingRecommendation, type: decision-ref}, {name: verifiedNamingReceipt, type: evidence-ref}]
+    authority: {default: deny, effects: [read, state-append, state-mutate, external-execute]}
+    data:
+      reads: [session-metadata, bounded-conversation-evidence, current-thread-name, session-naming-receipts]
+      writes:
+        - {domain: session-naming-lifecycle-events, mode: append}
+        - {domain: conversation-session-name, mode: mutate}
+        - {domain: session-naming-receipts, mode: mutate}
+      ownerOf: [session-naming-receipts]
+    completion:
+      proof: [name matches the date ASCII kebab and controlled-status contract, SessionEnd and resume-only SessionStart captures contain no conversation bodies and return fail-open, ordinary SessionStart is ignored, automatic mutation uses the official app-server API and exact readback, receipt is written only after readback, duplicate lifecycle events are idempotent, existing canonical names and later manual overrides remain unchanged, configuration status does not claim unverified Hook trust]
+      verifier: self
+      acceptedEvidence: [test, validate, artifact, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [manual-format-contract, body-free-hook-boundary, resume-recovery-trigger, ordinary-startup-rejection, bounded-semantic-evidence, raw-content-privacy, app-server-readback, cross-trigger-idempotence, manual-override-preservation, hook-trust-status-boundary, utf8-title]
+    maturity: alpha
+    version: 1.2.0
+    contractFingerprint: contract-v2:interaction.session.name@1.2.0
+    contractContentDigest: sha256:cb09aef5a8faee9ac10d8344a2f8635c18f6bdde57509056c199f043e11694a2
+
+  - key: open-deliverable
+    capability: artifact.deliverable.open-local
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Select one verified primary local deliverable and open it once in the Windows default application, with a clickable path fallback.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: open-deliverable
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Select one verified primary local deliverable and open it once in the Windows default application, with a clickable path fallback.
+    nonGoals: [generate or validate the deliverable, open executables installers scripts shortcuts archives or unknown binaries, launch in remote server CI or headless environments, reopen an unchanged artifact in the same turn, open an untrusted externally supplied artifact]
+    triggers:
+      positive: [open a completed verified local deliverable for review, show the primary finished artifact in its default Windows application]
+      negative: [artifact verification has not passed, multiple primary deliverables remain ambiguous, explicit request not to open, non-interactive environment]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: primaryDeliverable, type: artifact-ref}, {name: verificationEvidence, type: evidence-ref}]
+      outputs: [{name: openAttempt, type: evidence-ref}]
+    authority: {default: deny, effects: [read, external-execute]}
+    data:
+      reads: [verified-local-deliverable, desktop-environment-state]
+      writes: []
+      ownerOf: []
+    completion:
+      proof: [target is one non-empty allowed regular file and its verification is current, at most one visible default-application launch is attempted for the unchanged artifact, launch failure returns the resolved path and clickable fallback without retry]
+      verifier: self
+      acceptedEvidence: [validate, authority]
+    failure:
+      maxEquivalentAttempts: 0
+      retry: prohibited
+      route: fallback-file-link
+    telemetry: *telemetry
+    evals: [allowed-extension-boundary, verified-artifact-gate, single-primary-selection, what-if-no-launch, launch-failure-fallback]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:artifact.deliverable.open-local@1.0.0
+    contractContentDigest: sha256:f02ab4ff186e64bb591e8ac01b6c2a64d1f42e9b0eaedc7df72a5c13ba1ad335
+
+  - key: skill-idea-inbox
+    capability: learning.skill-idea.capture
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Distill future cross-project Skill or agent-capability ideas, deduplicate them against a global append-only inbox, and return a stable idea record without starting implementation.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: skill-idea-inbox
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Distill future cross-project Skill or agent-capability ideas, deduplicate them against a global append-only inbox, and return a stable idea record without starting implementation.
+    nonGoals: [store project tasks, treat capture as implementation approval, retain full prompts responses secrets or client-specific content, invent deadlines budgets or owners]
+    triggers:
+      positive: [remember a Skill idea globally, save a cross-project capability idea for later, review or update the Skill backlog]
+      negative: [project-specific task capture, request to implement an already approved change, sensitive idea that cannot be safely distilled]
+    dependencies:
+      capabilities: []
+      components: [store.skill-idea-ledger]
+    interfaces:
+      inputs: [{name: skillIdea, type: intent-ref}, {name: existingIdeaState, type: ledger-ref}]
+      outputs: [{name: ideaRecord, type: ledger-ref}]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [skill-idea-events, user-authorized-idea-signal]
+      writes: [{domain: skill-idea-events, mode: append}]
+      ownerOf: []
+    completion:
+      proof: [equivalent active ideas are updated instead of duplicated, the appended event reads back under a stable idea ID, stored fields contain only the safely distilled idea and implementation remains unstarted unless separately requested]
+      verifier: self
+      acceptedEvidence: [validate, artifact, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [equivalent-idea-deduplication, append-readback, privacy-safe-distillation, status-transition, implementation-approval-boundary]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:learning.skill-idea.capture@1.0.0
+    contractContentDigest: sha256:f5b835273b9dc87a27cea390e86f6c55ce22b4349878012a217479b88bfc5074
+
+  - key: planning
+    capability: plan.execution.create
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Convert user intent into an execution-ready orchestration plan with dependencies, routing, authority, verification, and review handoff.'
+    entrypoint: planning
+    invocationPolicy: explicit-only
+    delegatesTo: ['adaptive-orchestrator']
+    stateOwner: planning
+    secondaryCapabilities: []
+    source: local
+    path: planning
+    exposure: {surface: public, invocation: explicit-only, migrationState: local-source}
+    responsibility: Convert user intent into an execution-ready orchestration plan with dependencies, routing, authority, verification, and review handoff.
+    nonGoals: [implement the plan, replace GAN review, grant authority, invent unavailable estimates, persist state only in conversation]
+    triggers:
+      positive: [create an implementation plan, plan a project or investigation, decompose requirements before execution]
+      negative: [execute an already approved plan, ordinary one-step answer, adversarial review without planning]
+    dependencies:
+      capabilities: []
+      components: []
+    interfaces:
+      inputs: [{name: userIntent, type: intent-ref}, {name: projectEvidence, type: evidence-ref}]
+      outputs: [{name: orchestrationPlan, type: plan-ref}, {name: reviewPacket, type: review-ref}]
+    authority: {default: deny, effects: [read, state-append]}
+    data:
+      reads: [user-intent, project-evidence, existing-ledger]
+      writes: [{domain: orchestration-plan, mode: artifact}]
+      ownerOf: [orchestration-plan]
+    completion:
+      proof: [plan has stable task IDs, dependencies, routing, authority, acceptance criteria, verification, immutable plan digest, GAN review evidence, separate enrichment digest, and explicit Planning-to-Adaptive-to-GAN-to-execution handoff; no implementation started]
+      verifier: self
+      acceptedEvidence: [artifact, validate, authority]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [task-decomposition, dependency-integrity, routing-completeness, immutable-plan-digest, gan-review-evidence-required, planning-gan-adaptive-handoff, approval-boundary, verification-evidence, no-implementation-during-planning]
+    maturity: alpha
+    version: 0.1.0
+    contractFingerprint: contract-v2:plan.execution.create@0.1.0
+    contractContentDigest: sha256:14c3364eb0a451b943a245f3a857b1bde7ab21d260f62dbd016881f05b8799de
+
+  - key: adaptive-orchestrator
+    capability: execution.orchestrate.adaptive
+    primaryCategory: execution-delegation-routing
+    primaryResponsibility: 'Coordinate reviewed plans through bounded runtime dispatch, agent execution, verification, retry, approval, and body-free usage accounting.'
+    entrypoint: hook
+    invocationPolicy: implicit
+    delegatesTo: ['agent-team-orchestrator', 'gan', 'ai-project-manager:progress-verifier', 'failure-loop-guard', 'skill-telemetry']
+    stateOwner: adaptive-orchestrator
+    secondaryCapabilities: []
+    source: local
+    path: adaptive-orchestrator
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Coordinate reviewed plans through bounded runtime dispatch, agent execution, verification, retry, approval, and body-free usage accounting.
+    nonGoals: [start models from a Hook, grant authority from agent text, execute fatal operations before PreToolUse enforcement, estimate unavailable usage]
+    triggers: {positive: [execute a reviewed orchestration plan, automatically route bounded work to Codex Agent Team, verify staged work], negative: [planning-only request, unreviewed plan, direct fatal operation]}
+    dependencies: {capabilities: [plan.execution.create, review.adversarial.run], components: []}
+    interfaces: {inputs: [{name: orchestrationPlan, type: plan-ref}, {name: runtimeObservation, type: evidence-ref}], outputs: [{name: executionReport, type: report-ref}, {name: stageEvidence, type: evidence-ref}]}
+    authority: {default: deny, effects: [read, workspace-write, state-append, state-mutate, external-execute]}
+    data: {reads: [orchestration-plan, runtime-observations, project-evidence], writes: [{domain: stage-runner-state, mode: mutate}, {domain: orchestration-events, mode: append}], ownerOf: [stage-runner-state]}
+    completion: {proof: [plan digest is fixed, parent-observed dispatch results exist, artifacts and evidence are verified, retries and blocked states are recorded], verifier: self, acceptedEvidence: [artifact, validate, authority]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [plan-review-implement-verify-order, dispatch-capability-reuse, lease-recovery, principal-separation, fatal-operation-block, usage-unavailable]
+    maturity: alpha
+    version: 0.1.0
+    contractFingerprint: contract-v2:execution.orchestrate.adaptive@0.1.0
+    contractContentDigest: sha256:877bd4f54cc36717f913689d392c5c01c1dee6e48001e01a76d7d78853320bbf
+
+  - key: api-cost-report
+    capability: accounting.api-cost.report
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Report provider API-equivalent cost from authoritative token usage without confusing it with subscription billing or unavailable runtime counters.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: api-cost-report
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Report provider API-equivalent cost from authoritative token usage without confusing it with subscription billing or unavailable runtime counters.
+    nonGoals: [estimate unavailable tokens, claim subscription billing, store prompt or response bodies]
+    triggers: {positive: [report API cost, calculate provider-equivalent cost from measured usage], negative: [runtime token estimate, subscription invoice]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: providerUsage, type: evidence-ref}], outputs: [{name: costReport, type: report-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [provider-usage-ledger], writes: [{domain: api-cost-reports, mode: artifact}], ownerOf: []}
+    completion: {proof: [usage source, rates, calculation, and unavailable fields are explicit], verifier: self, acceptedEvidence: [artifact, validate]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [authoritative-usage-only, rate-calculation, unavailable-boundary]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:accounting.api-cost.report@1.0.0
+    contractContentDigest: sha256:59c53cd7b4e259dd00b9eabfde6035ce6116f71c8e549bbb4dfaa372d70a7d8b
+
+  - key: build-client-decision-decks
+    capability: material.client-decision-deck.build
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Convert mixed client materials into an evidence-backed client-facing deck that makes one decision and its next actions clear.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: build-client-decision-decks
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Convert mixed client materials into an evidence-backed client-facing deck that makes one decision and its next actions clear.
+    nonGoals: [send or publish externally, hide uncertainty, treat minutes as a decision artifact]
+    triggers: {positive: [build a client decision deck, revise a proposal for a decision], negative: [generic slide decoration, meeting minutes only]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: sourceMaterials, type: evidence-ref}, {name: decisionIntent, type: intent-ref}], outputs: [{name: decisionDeck, type: artifact-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [client-source-materials], writes: [{domain: client-decision-decks, mode: artifact}], ownerOf: []}
+    completion: {proof: [claims trace to sources, decision and client actions are explicit, rendered artifact is validated], verifier: human, acceptedEvidence: [artifact, validate, domain-verdict]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [decision-clarity, claim-traceability, render-validation]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:material.client-decision-deck.build@1.0.0
+    contractContentDigest: sha256:21c377aa18f06930e0471140404e30338b90bead81fc8d2027b4ac0a6e00d34a
+
+  - key: improve-ai-prompts
+    capability: ai.prompt.production.improve
+    primaryCategory: learning-memory-improvement
+    primaryResponsibility: 'Improve production AI prompts through bounded edits and mandatory before-after golden-dataset evaluation.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: improve-ai-prompts
+    exposure: {surface: public, invocation: explicit-only, migrationState: local-source}
+    responsibility: Improve production AI prompts through bounded edits and mandatory before-after golden-dataset evaluation.
+    nonGoals: [edit unrelated prompts, skip golden evaluation, claim quality improvement from one example]
+    triggers: {positive: [improve production AI prompts, debug prompt quality, run prompt evaluations], negative: [mock-only change, unrelated prompt]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: promptSource, type: source-ref}, {name: goldenDataset, type: evidence-ref}], outputs: [{name: promptPatch, type: artifact-ref}, {name: evaluation, type: evidence-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [production-prompt-source, golden-dataset], writes: [{domain: prompt-improvement-artifacts, mode: artifact}], ownerOf: []}
+    completion: {proof: [before-after evaluation passes and changed prompt scope is explicit], verifier: self, acceptedEvidence: [artifact, validate]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [golden-dataset-regression, prompt-scope, before-after-quality]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:ai.prompt.production.improve@1.0.0
+    contractContentDigest: sha256:c9d394c30e55a93fa0f711d8f3568f352fb8c115d4c169d7b7ec12eeb0eff5d4
+
+  - key: proposal-proportionality-gate
+    capability: governance.proposal.proportionality.assess
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Assess whether a proposed control or architecture is necessary and proportionate before it adds operational burden.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: proposal-proportionality-gate
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Assess whether a proposed control or architecture is necessary and proportionate before it adds operational burden.
+    nonGoals: [approve destructive execution, replace adversarial review, treat every risk as authority to add controls]
+    triggers: {positive: [assess proportionality of a proposed gate, review added approval or infrastructure burden], negative: [execute the proposal, skip evidence]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: proposal, type: plan-ref}, {name: riskEvidence, type: evidence-ref}], outputs: [{name: proportionalityDecision, type: report-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [proposal, risk-evidence], writes: [{domain: proportionality-reports, mode: artifact}], ownerOf: []}
+    completion: {proof: [benefit, cost, reversibility, alternatives, and decision boundary are explicit], verifier: self, acceptedEvidence: [artifact, validate]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [necessity, proportionality, alternative-analysis]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:governance.proposal.proportionality.assess@1.0.0
+    contractContentDigest: sha256:348cb7d4b0e352bc64fecf9b961dfc8f3f9598e62c7d76721c5d84812f40380a
+
+  - key: review-my-prompts
+    capability: prompt.user.review
+    primaryCategory: observation-verification-failure-control
+    primaryResponsibility: 'Evaluate a user-written prompt for clarity, concision, goal definition, and observed effectiveness without evaluating the assistant response as the prompt.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: review-my-prompts
+    exposure: {surface: public, invocation: explicit-only, migrationState: local-source}
+    responsibility: Evaluate a user-written prompt for clarity, concision, goal definition, and observed effectiveness without evaluating the assistant response as the prompt.
+    nonGoals: [evaluate assistant answers, retain raw prompt bodies, infer private intent]
+    triggers: {positive: [review my prompt, evaluate prompt quality, improve instructions], negative: [review generated answer, ordinary request]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: userPrompt, type: intent-ref}], outputs: [{name: promptReview, type: report-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [user-provided-prompt], writes: [{domain: prompt-review-reports, mode: artifact}], ownerOf: []}
+    completion: {proof: [review distinguishes prompt text from assistant output and scores defined dimensions], verifier: self, acceptedEvidence: [artifact, validate]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [prompt-boundary, clarity-score, concision-score]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:prompt.user.review@1.0.0
+    contractContentDigest: sha256:7ee7eabacde93c1be6f5e12b3b150b7d4f4ff5752289c4524187bf7be06566c6
+
+  - key: universal-document-design
+    capability: document.business.universal-design
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Create or revise readable Word and PDF-ready business documents with clear actions, accessibility, and low cognitive load.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: universal-document-design
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Create or revise readable Word and PDF-ready business documents with clear actions, accessibility, and low cognitive load.
+    nonGoals: [decorative formatting without usability, external sending, claim layout success without rendering validation]
+    triggers: {positive: [create an action guide, notice, checklist, procedure, or accessible handout], negative: [raw data conversion only, decorative redesign]}
+    dependencies: {capabilities: [], components: []}
+    interfaces: {inputs: [{name: documentIntent, type: intent-ref}, {name: sourceContent, type: evidence-ref}], outputs: [{name: businessDocument, type: artifact-ref}, {name: renderValidation, type: evidence-ref}]}
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [document-source-content], writes: [{domain: universal-document-artifacts, mode: artifact}], ownerOf: []}
+    completion: {proof: [document renders, hierarchy and next action are clear, accessibility and format checks pass], verifier: human, acceptedEvidence: [artifact, validate, domain-verdict]}
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [readability, actionability, accessibility, render-validation]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:document.business.universal-design@1.0.0
+    contractContentDigest: sha256:d858d040f6d4bd267a8c280994418fbc263c22a69404b9661e82166c5328f483
+
+  - key: reduce-ui-cognitive-cost
+    capability: design.uiux.cognitive-cost.reduce
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Diagnose mismatches between task importance and visual strength, then propose two or three layouts that differ only in where the eye lands first.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: reduce-ui-cognitive-cost
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Diagnose mismatches between task importance and visual strength, then propose two or three layouts that differ only in where the eye lands first.
+    nonGoals: [reduce element count as a proxy, pure copywriting, accessibility-only audit, performance work, claim improvement without viewport validation]
+    triggers:
+      positive: [見にくい, 認知コスト, UI hierarchy, 視線順の改善]
+      negative: [backend-only implementation, pure copywriting, accessibility-only audit, performance work]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: uiScreen, type: artifact-ref}, {name: uxGoal, type: intent-ref}, {name: viewportEvidence, type: evidence-ref}]
+      outputs: [{name: cognitiveDiagnosis, type: report-ref}, {name: layoutOptions, type: artifact-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [ui-screen, viewport-evidence, ux-constraints]
+      writes: [{domain: ui-cognitive-cost-guidance, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [priority order is explicit, visual strength is measured, rank mismatch is named, two or three layouts differ only in eye landing, narrow and wide viewport validation is recorded]
+      verifier: human
+      acceptedEvidence: [artifact, validate, domain-verdict]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [priority-order, visual-strength-measurement, rank-mismatch, bounded-layout-variants, viewport-validation]
+    maturity: alpha
+    version: 1.0.0
+    contractFingerprint: contract-v2:design.uiux.cognitive-cost.reduce@1.0.0
+    contractContentDigest: sha256:95e5912ead78641e3e9b9e508484616daf974d8d461fe9fe2caaece8a6ce4039
+
+  - key: work-closeout-report
+    capability: workflow.closeout.report
+    primaryCategory: artifact-communication
+    primaryResponsibility: 'Format verifier- and orchestrator-backed closeout evidence into four concise Japanese blocks without deciding completion or mutating state.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: work-closeout-report
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Format verifier- and orchestrator-backed closeout evidence into four concise Japanese blocks without deciding completion or mutating state.
+    nonGoals: [decide completion, run checks, request or grant approval, store prompt/response/tool bodies, mutate project state]
+    triggers: {positive: [作業終了報告, 完了報告, closeout report], negative: [実装, 検証の実行, 承認の代行]}
+    dependencies:
+      capabilities: [task.progress.verify, task.human.request]
+      components: []
+    interfaces:
+      inputs: [{name: closeoutHandoff, type: closeout_v1}]
+      outputs: [{name: fourBlockReport, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data: {reads: [closeout_v1-metadata], writes: [], ownerOf: []}
+    completion: {proof: [four fixed blocks, digest and attempt match, evidence-bound completion state, approval status distinction], verifier: capability:task.progress.verify, acceptedEvidence: [validate, domain-verdict]}
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [four-block-output, work-status-line, status-mapping, decision-support-boundary, actor-routing, stale-handoff-rejection, missing-evidence-rejection, approval-status-boundary, body-free-input]
+    maturity: alpha
+    version: 0.1.0
+    contractFingerprint: contract-v2:workflow.closeout.report@0.1.0
+    contractContentDigest: sha256:7deef8914aca4ff965e4f79daad91b0edfb970e57ba856d91b592cc7b8b78254
+
+  - key: reusable-skill-standard
+    capability: skill.design.reusable.standard
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Design portable, provider-neutral, permissioned, testable, and auditable AI Skills with structured metadata and adapters.'
+    entrypoint: explicit
+    invocationPolicy: explicit-only
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: [skill.contract.define, skill.permission.model, skill.audit.design]
+    source: local
+    path: reusable-skill-standard
+    exposure: {surface: public, invocation: explicit-only, migrationState: local-source}
+    responsibility: Design portable, provider-neutral, permissioned, testable, and auditable AI Skills with structured metadata and adapters.
+    nonGoals: [grant_authority, execute_external_write, store_credentials, replace_adapters_without_validation]
+    triggers: {positive: [create reusable Skill, design Skill standard, review Skill architecture, make Skill provider-neutral], negative: [execute a project task, directly mutate an external service]}
+    dependencies:
+      capabilities: [execution.orchestrate.adaptive]
+      components: []
+    interfaces:
+      inputs: [{name: skillIntent, type: intent-ref}, {name: existingSkill, type: artifact-ref}]
+      outputs: [{name: skillContract, type: artifact-ref}, {name: skillSchemas, type: artifact-ref}, {name: skillTestPlan, type: artifact-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [skill-source, provider-contracts, policy-contracts], writes: [{domain: skill-source, mode: artifact}], ownerOf: []}
+    completion: {proof: [skill_yaml_valid, permissions_defined, schemas_present, injection_tests_present, provider_boundary_defined], verifier: capability:execution.orchestrate.adaptive, acceptedEvidence: [artifact, validate, test]}
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [skill-contract, permission-boundary, provider-portability, sandbox-boundary, injection-resistance, audit-completeness]
+    maturity: alpha
+    version: 0.1.0
+    contractFingerprint: contract-v2:skill.design.reusable.standard@0.1.0
+    contractContentDigest: sha256:8088d7fcc17f72009e65749ca4a18e7598f620358f83262ad88b9180ac99e2fc

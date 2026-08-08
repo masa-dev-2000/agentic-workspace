@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "artifact_sha256": "dc6977c3afffe80448bdc18d58c2f3db38c76b54ae4c585f7bb56deaed4adb06",
+  "checks": [
+    "all six synthetic slide units are present",
+    "no textual clipping or truncation markers are present",
+    "decision, budget ceiling, owner, and deadline are visible"
+  ]
+}

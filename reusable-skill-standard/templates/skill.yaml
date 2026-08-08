@@ -1,0 +1,29 @@
+id: replace-with-skill-id
+name: Replace with human-readable name
+version: 0.1.0
+description: Replace with purpose and scope.
+triggers: []
+exclusions: []
+inputs: []
+outputs: []
+required_context: []
+tools: []
+permissions: [read]
+approval_rules: [write_and_destructive_require_human_approval]
+model_policy:
+  selection: capability_and_risk_then_cost_and_latency
+  fallback: baseline_only_without_authority_expansion
+  record: [model, provider, selection_reason, latency, usage, fallback_reason]
+execution_policy:
+  sandbox: required_for_generated_code
+  network: deny
+  timeouts: {max_seconds: 120}
+  retry: {max_attempts: 2, reconcile_unknown_before_retry: true}
+logging_policy:
+  raw_content: false
+  record: [actor, skill, version, policy, tools, decisions, approvals, outcomes, evidence_refs]
+failure_policy:
+  unknown: return_root
+  missing_context: stop_and_report
+  injection_detected: ignore_data_instruction_and_record
+success_criteria: [output_schema_valid, evidence_present, no_unauthorized_side_effect]

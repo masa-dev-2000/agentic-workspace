@@ -1,0 +1,4 @@
+interface:
+  display_name: "OCR Semantic Structure Audit"
+  short_description: "Audit OCR structure, semantics, relations, and review evidence"
+  default_prompt: "Audit these OCR outputs without changing the originals. Group pages by physical format, find semantic inconsistencies, and build evidence-backed human review tasks."

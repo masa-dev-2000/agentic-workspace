@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "leaseSeconds": 30,
+  "maxRetries": 3,
+  "budget": {
+    "maxItems": 100,
+    "maxAdapterRuns": 25,
+    "maxSeconds": 10
+  },
+  "circuitBreaker": {
+    "failureThreshold": 3,
+    "cooldownSeconds": 60
+  },
+  "routes": {
+    "execution.post-tool": [
+      "failure-capture",
+      "telemetry-capture"
+    ],
+    "execution.tool-failure": [
+      "failure-capture",
+      "telemetry-capture"
+    ],
+    "interaction.user-prompt": [
+      "ai-pm-prompt",
+      "telemetry-capture"
+    ],
+    "interaction.stop": [
+      "telemetry-capture"
+    ]
+  },
+  "adapters": {
+    "failure-capture": {
+      "enabled": false,
+      "inputContract": "EventEnvelope/1.0",
+      "command": [
+        "${PYTHON}",
+        "-X",
+        "utf8",
+        "${SKILLS_ROOT}/failure-learning/scripts/capture_hook.py"
+      ],
+      "timeoutSeconds": 2
+    },
+    "telemetry-capture": {
+      "enabled": false,
+      "inputContract": "EventEnvelope/1.0",
+      "command": [
+        "${PYTHON}",
+        "-X",
+        "utf8",
+        "${SKILLS_ROOT}/skill-telemetry/scripts/capture_hook.py"
+      ],
+      "timeoutSeconds": 2
+    },
+    "ai-pm-prompt": {
+      "enabled": false,
+      "inputContract": "EventEnvelope/1.0",
+      "requiresContentRef": true,
+      "command": [
+        "${PYTHON}",
+        "-X",
+        "utf8",
+        "${AI_PROJECT_MANAGER_ROOT}/hooks/user_prompt_dispatcher.py"
+      ],
+      "timeoutSeconds": 2
+    }
+  },
+  "legacyExternalCollectors": [
+    {
+      "id": "self-clone-plugin-hooks",
+      "mode": "preserve-until-plugin-release"
+    }
+  ]
+}

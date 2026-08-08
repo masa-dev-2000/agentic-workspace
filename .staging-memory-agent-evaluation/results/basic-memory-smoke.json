@@ -1,0 +1,10 @@
+{
+  "package": "basic-memory==0.22.1",
+  "installation": "project-local uv venv",
+  "directory": "tools/basic-memory/notes",
+  "project": "evaluation",
+  "local_project_add": "pass",
+  "write_note": "pass",
+  "read_note": "pass",
+  "cloud": false
+}

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Build Complete App"
+  short_description: "Turn a short request into a verified web MVP"
+  default_prompt: "Use $build-complete-app to turn this short request into a working, browser-verified local Web MVP."
+

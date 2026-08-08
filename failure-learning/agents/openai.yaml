@@ -1,0 +1,4 @@
+interface:
+  display_name: "Failure Learning"
+  short_description: "Review a private failure ledger and curate reusable lessons"
+  default_prompt: "Use $failure-learning to inspect recent failure patterns and identify safe reusable lessons."

@@ -1,0 +1,32 @@
+schemaVersion: 1
+profiles:
+  project-control:
+    public_entry: true
+    allowed_callers: [user, system]
+    exclusive_group: control-plane
+    authority: write_local
+    blocking: true
+    lifecycle_phase: phase-0-3
+    canonical_store: project-ledger
+    produces: [project-goal, project-task, ledger-reference]
+    consumes: [user-intent, project-evidence]
+  execution-engine:
+    public_entry: true
+    allowed_callers: [user, project-control]
+    exclusive_group: execution-plane
+    authority: recommend
+    blocking: true
+    lifecycle_phase: phase-0-3
+    canonical_store: execution-runner
+    produces: [execution-plan, run-reference, observation-event]
+    consumes: [project-task, acceptance-criteria, policy-reference]
+  domain:
+    public_entry: false
+    allowed_callers: [execution-engine]
+    exclusive_group: domain-execution
+    authority: execute_reversible
+    blocking: false
+    lifecycle_phase: phase-0-3
+    canonical_store: assigned-domain
+    produces: [domain-result]
+    consumes: [bounded-task, execution-plan]

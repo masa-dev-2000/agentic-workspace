@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Normalizer"
+  short_description: "Normalize project plans without destroying existing evidence."
+  default_prompt: "Use $project-normalizer to inspect and normalize this project."
