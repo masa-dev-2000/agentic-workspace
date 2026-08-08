@@ -1,0 +1,9 @@
+# Gatekeeper permission template. List the narrowest capabilities this Skill needs.
+version: 1
+filesystem:
+  read: []
+  write: []
+network:
+  allowedDomains: []
+subprocess:
+  allowedCommands: []

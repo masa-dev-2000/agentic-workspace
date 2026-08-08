@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: UI/UX design intelligence with searchable database
+description: Searchable UI/UX design database (styles, palettes, typography, charts, UX guidelines, stack-specific rules) with scripts that generate a persistent per-project design system. Use when choosing a visual direction or design system for a web/app project, when the user asks for UI styles, color palettes, font pairings, or UX best practices, or when building landing pages, dashboards, or SaaS products and a consistent design language is needed. Do not use for backend work, copywriting, or when a project-specific design skill (e.g. kyoryokutai-ui) already owns the screen.
 ---
 # ui-ux-pro-max
 

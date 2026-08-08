@@ -1,0 +1,4 @@
+{
+  "$comment": "Authorization list for harvest-components. Add absolute project paths that the user has explicitly approved for component harvesting. Empty list = no project may be processed (fail-closed).",
+  "authorizedProjects": []
+}

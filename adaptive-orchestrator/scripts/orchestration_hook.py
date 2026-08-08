@@ -1,6 +1,5 @@
 from __future__ import annotations
 import hashlib, json, sqlite3, sys, importlib.util, os
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
@@ -11,7 +10,6 @@ Mandatory workflow:
 PLAN -> REVIEW -> IMPLEMENT -> VERIFY -> REPORT.
 For non-trivial work, create a structured plan, run an independent review, implement only the reviewed plan, verify with observable evidence, and report roles, model/provider class, duration, tokens, cost, retries, and evidence. Use unavailable when runtime data is not exposed. Only fatal operations require human approval. The LLM may propose routing but cannot grant authority or bypass policy.
 """
-def stamp(): return datetime.now(timezone.utc).isoformat()
 def h(value): return hashlib.sha256(value.encode("utf-8")).hexdigest()
 def main():
     try:
@@ -25,9 +23,6 @@ def main():
         DB.parent.mkdir(parents=True,exist_ok=True)
         with sqlite3.connect(DB) as conn:
             conn.row_factory = sqlite3.Row
-            conn.execute("CREATE TABLE IF NOT EXISTS jobs(job_id TEXT PRIMARY KEY,session_hash TEXT NOT NULL,turn_hash TEXT NOT NULL,cwd_hash TEXT NOT NULL,prompt_hash TEXT NOT NULL,stage TEXT NOT NULL,status TEXT NOT NULL,started_at TEXT NOT NULL,updated_at TEXT NOT NULL)")
-            conn.execute("CREATE TABLE IF NOT EXISTS stages(id INTEGER PRIMARY KEY AUTOINCREMENT,job_id TEXT NOT NULL,stage TEXT NOT NULL,status TEXT NOT NULL,role TEXT,model_class TEXT,started_at TEXT,ended_at TEXT,input_tokens INTEGER,output_tokens INTEGER,total_tokens INTEGER,cost REAL,evidence_ref TEXT)")
-            conn.execute("INSERT OR IGNORE INTO jobs(job_id,session_hash,turn_hash,cwd_hash,prompt_hash,stage,status,started_at,updated_at) VALUES(?,?,?,?,?,'plan','running',?,?)",(job_id,h(session),h(turn),h(cwd),h(prompt),stamp(),stamp()))
             now=int(conn.execute("SELECT strftime('%s','now')").fetchone()[0])
             conn.execute("CREATE TABLE IF NOT EXISTS ao_jobs(job_id TEXT PRIMARY KEY,session_hash TEXT NOT NULL,turn_hash TEXT NOT NULL,cwd_hash TEXT NOT NULL,prompt_hash TEXT NOT NULL,state TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 0,plan_digest TEXT,plan_revisions INTEGER NOT NULL DEFAULT 0,max_plan_revisions INTEGER NOT NULL DEFAULT 2,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL)")
             conn.execute("CREATE TABLE IF NOT EXISTS ao_hook_ingress(ingress_id TEXT PRIMARY KEY,job_id TEXT NOT NULL UNIQUE,hook_revision TEXT NOT NULL,created_at INTEGER NOT NULL)")

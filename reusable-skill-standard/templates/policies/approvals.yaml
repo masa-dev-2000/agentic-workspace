@@ -1,0 +1,4 @@
+# Human-approval boundaries. Actions listed here must never run without explicit approval in the current request.
+version: 1
+requiresApproval: []
+autoApproved: []

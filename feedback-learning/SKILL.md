@@ -1,6 +1,6 @@
 ---
 name: feedback-learning
-description: Capture and inspect private local feedback evidence, drain authenticated body-free lifecycle classifications, convert recurring or explicitly durable signals into counter-aware ImprovementPatterns, route them to the smallest existing system surface, stage disabled ImprovementProposals and ChangeSets, record exact expiring human approval, and evaluate bounded experiments without claiming causality. Use when the user asks to remember or review feedback, include authorized third-party feedback, identify recurring improvement opportunities, or grow existing Skills and workflow connections from accumulated evidence. Do not invoke for ordinary preferences; the narrow UserPromptSubmit hook only writes signed body-free spool envelopes.
+description: Manage the private local feedback-evidence ledger. Captures signed, body-free feedback classifications via a lifecycle hook, and turns recurring or explicitly durable signals into ImprovementPatterns, staged ImprovementProposals, and ChangeSets that activate only with exact expiring human approval. Use when the user asks to remember or review feedback, drain or inspect the feedback ledger, identify recurring improvement opportunities, or grow existing Skills from accumulated evidence. Do not invoke for ordinary one-off preferences.
 ---
 
 # Feedback Learning

@@ -2165,6 +2165,43 @@ skills:
     contractFingerprint: contract-v2:document.business.universal-design@1.0.0
     contractContentDigest: sha256:d858d040f6d4bd267a8c280994418fbc263c22a69404b9661e82166c5328f483
 
+  - key: kyoryokutai-ui
+    capability: project.kyoryokutai.ui-design
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Design and build UI for the kyoryokutai_support product: member smartphone screens, government-office PC screens, and the HTML mocks under v2/docs/mock/.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: kyoryokutai-ui
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: 'Design and build UI for the kyoryokutai_support product: member smartphone screens, government-office PC screens, and the HTML mocks under v2/docs/mock/.'
+    nonGoals: [backend or API implementation, data-model work, generic design-system advice outside this product]
+    triggers:
+      positive: [kyoryokutai screen or mock design, v2/docs/mock revision, 協力隊アプリの画面設計]
+      negative: [backend work, API work, database work, non-kyoryokutai UI]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: screenIntent, type: intent-ref}, {name: existingMock, type: artifact-ref}]
+      outputs: [{name: screenDesign, type: artifact-ref}, {name: mockDiff, type: artifact-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data:
+      reads: [kyoryokutai-v2-source, v2-mock-html]
+      writes: [{domain: kyoryokutai-v2-mock, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [screen intent restated, layout decision recorded, mock updated or created, viewport check recorded]
+      verifier: human
+      acceptedEvidence: [artifact, validate]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [screen-intent-restated, viewport-check-recorded]
+    version: 1.0.0
+    contractFingerprint: contract-v2:project.kyoryokutai.ui-design@1.0.0
+    contractContentDigest: 'sha256:c6c7f9a8cf33bee219769ae22a29659e8f6183c7e6147ef6654a1641f9aa35cc'
+    maturity: alpha
   - key: reduce-ui-cognitive-cost
     capability: design.uiux.cognitive-cost.reduce
     primaryCategory: decision-planning-governance
