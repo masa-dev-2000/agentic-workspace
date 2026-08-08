@@ -105,7 +105,7 @@ def scheduled_task(action: str) -> dict:
         args = ["schtasks.exe", "/Delete", "/TN", OPTIMIZER_TASK, "/F"]
     else:
         args = ["schtasks.exe", "/Query", "/TN", OPTIMIZER_TASK, "/FO", "LIST"]
-    completed = subprocess.run(args, capture_output=True, text=True, check=False)
+    completed = subprocess.run(args, capture_output=True, text=True, encoding="oem", errors="replace", check=False)
     return {
         "ok": completed.returncode == 0,
         "task": OPTIMIZER_TASK,
