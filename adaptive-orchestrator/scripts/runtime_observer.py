@@ -50,7 +50,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Observe orchestration evidence without writing state")
     parser.add_argument("job_id")
     parser.add_argument("--ingress-id")
-    parser.add_argument("--db", default=str(Path(__file__).with_name("orchestration.sqlite3")))
+    parser.add_argument("--db", default=str(Path.home() / ".codex" / "adaptive-orchestrator" / "orchestration.sqlite3"))
     args = parser.parse_args()
     print(json.dumps(observe(args.db, args.job_id, args.ingress_id), ensure_ascii=True, sort_keys=True))
     return 0

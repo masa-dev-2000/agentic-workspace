@@ -1,2 +1,0 @@
-Remote Control local file test
-created_at: 2026-08-05 Asia/Tokyo

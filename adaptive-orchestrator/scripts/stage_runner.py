@@ -211,7 +211,7 @@ def operation_transition(c,p,target):
 def approve(c,p): raise RunnerError("fatal approvals are disabled until Phase 3 PreToolUse enforcement")
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--db",default=str(Path(__file__).with_name("orchestration.sqlite3"))); sub=ap.add_subparsers(dest="command",required=True)
+    ap=argparse.ArgumentParser(); ap.add_argument("--db",default=str(Path.home() / ".codex" / "adaptive-orchestrator" / "orchestration.sqlite3")); sub=ap.add_subparsers(dest="command",required=True)
     sub.add_parser("init"); sub.add_parser("migrate")
     payload_commands=("create-job","claim","heartbeat","record-result","prepare-operation","mark-applying","mark-unknown","reconcile-operation","commit-operation","approve")
     for n in payload_commands: sub.add_parser(n).add_argument("payload")

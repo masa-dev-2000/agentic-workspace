@@ -32,7 +32,7 @@ PHASE03_PATH = SCRIPTS / "phase03_contract.py"
 REGISTRY_VALIDATOR_PATH = SCRIPTS / "registry_validator.py"
 REGISTRY_PATH = ROOT / "skill-registry.yaml"
 PHASE46_RUNTIME_PATH = SCRIPTS / "phase46_runtime.py"
-DEFAULT_RUNNER_DB = SCRIPTS / "orchestration.sqlite3"
+DEFAULT_RUNNER_DB = Path(os.environ.get("AO_ORCHESTRATION_DB", str(Path.home() / ".codex" / "adaptive-orchestrator" / "orchestration.sqlite3")))
 PROTECTED_PATHS = (
     STAGE_RUNNER_PATH,
     PHASE03_PATH,

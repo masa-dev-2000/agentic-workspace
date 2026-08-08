@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
-DB=Path(os.environ.get("AO_ORCHESTRATION_DB", str(ROOT/"orchestration.sqlite3")))
+DB=Path(os.environ.get("AO_ORCHESTRATION_DB", str(Path.home()/".codex"/"adaptive-orchestrator"/"orchestration.sqlite3")))
 HOOK_REVISION="orchestration-hook-v2"
 CONTEXT="""Adaptive Orchestrator is active for this request.
 Mandatory workflow:

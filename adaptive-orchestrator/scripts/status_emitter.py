@@ -53,7 +53,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("job_id")
     parser.add_argument("skills", nargs="+")
-    parser.add_argument("--db", default=str(Path(__file__).with_name("orchestration.sqlite3")))
+    parser.add_argument("--db", default=str(Path.home() / ".codex" / "adaptive-orchestrator" / "orchestration.sqlite3"))
     args = parser.parse_args()
     print(status_line(Path(args.db), args.job_id, args.skills))
     return 0
