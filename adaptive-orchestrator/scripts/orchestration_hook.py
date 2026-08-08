@@ -34,8 +34,6 @@ def main():
             if spec and spec.loader:
                 runner=importlib.util.module_from_spec(spec); spec.loader.exec_module(runner); runner.migrate(conn); runner.bootstrap_job(conn,job_id)
         runtime_context = CONTEXT + "\nHook revision: " + HOOK_REVISION + "\nIngress id: " + ingress_id + "\nVisible status contract: use the status emitter for this job; it emits ACTIVE only when the runner reports a running stage and otherwise emits NOT_CONNECTED or a persisted terminal state. Never claim ACTIVE from context alone.\nRuntime job_id: " + job_id + "\nRunner bootstrap: python -X utf8 " + str(ROOT / "stage_runner.py") + " bootstrap " + job_id + "\nRunner next: python -X utf8 " + str(ROOT / "stage_runner.py") + " next " + job_id + "\nStatus emitter: python -X utf8 " + str(ROOT / "status_emitter.py") + " " + job_id + " <canonical-skill-name>"
-        runtime_context += "\nStatus emitter: python -X utf8 " + str(ROOT / "status_emitter.py") + " " + job_id + " <canonical-skill-name>"
-        runtime_context += "\nStatus emitter: python -X utf8 " + str(ROOT / "status_emitter.py") + " " + job_id + " <canonical-skill-name>"
         print(json.dumps({"continue":True,"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":runtime_context}},ensure_ascii=False))
     except Exception:
         pass
