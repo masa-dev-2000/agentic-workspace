@@ -30,7 +30,10 @@ DRIFT_MAP = {
     ROOT / "config" / "CLAUDE.global.md": HOME / ".claude" / "CLAUDE.md",
     ROOT / "config" / "CLAUDE.user-root.md": HOME / "CLAUDE.md",
 }
-CODEX_HOOK_SCRIPTS = ["excel_capability_guard.py", "session_naming_on_end.py", "skill_status_stop.py"]
+# hooks/codex/ scripts sync to ~/.codex/hooks/, but hooks/codex/hooks.json syncs
+# to ~/.codex/hooks.json (covered by DRIFT_MAP above) — so it is excluded from the
+# directory comparison. Keep this list explicit; do not add silent exclusions.
+CODEX_HOOK_EXCLUDE = ["hooks.json"]
 
 errors: list[str] = []
 
@@ -114,7 +117,7 @@ def check_skills() -> None:
             err(f"{tag}: vendor-specific frontmatter {sorted(nonportable)} — move to adapters or the metadata map")
 
 
-def diff_tree(repo: Path, live: Path, tag: str) -> None:
+def diff_tree(repo: Path, live: Path, tag: str, ignore: list[str] | None = None) -> None:
     if not live.exists():
         err(f"{tag}: live path missing: {live}")
         return
@@ -122,7 +125,7 @@ def diff_tree(repo: Path, live: Path, tag: str) -> None:
         if not filecmp.cmp(repo, live, shallow=False):
             err(f"{tag}: drift between {repo} and {live}")
         return
-    cmp = filecmp.dircmp(str(repo), str(live))
+    cmp = filecmp.dircmp(str(repo), str(live), ignore=filecmp.DEFAULT_IGNORES + list(ignore or []))
     for name in cmp.diff_files:
         err(f"{tag}: drift in {name}")
     for name in cmp.left_only:
@@ -134,9 +137,8 @@ def diff_tree(repo: Path, live: Path, tag: str) -> None:
 def check_drift() -> None:
     for repo, live in DRIFT_MAP.items():
         diff_tree(repo, live, str(repo.relative_to(ROOT)))
-    for name in CODEX_HOOK_SCRIPTS:
-        diff_tree(ROOT / "hooks" / "codex" / name, HOME / ".codex" / "hooks" / name,
-                  f"hooks/codex/{name}")
+    diff_tree(ROOT / "hooks" / "codex", HOME / ".codex" / "hooks",
+              "hooks/codex", ignore=CODEX_HOOK_EXCLUDE)
 
 
 def check_criteria(fix: bool) -> None:
