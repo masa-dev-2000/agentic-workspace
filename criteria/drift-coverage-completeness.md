@@ -39,3 +39,4 @@ new hook or plugin automatically brings it under validation.
 
 - 2026-08-09: drafted as proposed (bootstrap; axes reported by issue-ledger).
 - 2026-08-09: activated. Approval: user (masa) explicit approval in Claude Code session, 「1,2. 承認」, 2026-08-09.
+- 2026-08-09: Approval: actor=github:masa-dev-2000 channel=claude-code-session date=2026-08-09 ref="1,2. 承認"

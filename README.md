@@ -19,4 +19,24 @@ Live locations are junctions/symlinks into this repo (skills) or synced copies (
 
 Validation: `python -X utf8 scripts/validate_workspace.py` — agent frontmatter, wiring registry (`config/wiring.json`, schema: `config/wiring.schema.md`) and copy-dir drift derived from it, criteria schema/index (`--fix` regenerates the index), leaked-ledger guard. Run before every push.
 
+This is mechanized by `.githooks/pre-push`, which runs the same validator and
+blocks the push on failure. It is not enabled by default — enable it once per
+clone/worktree with:
+
+```
+git config core.hooksPath .githooks
+```
+
+`--no-live` skips the live-filesystem checks (drift + wiring liveness), which
+require this machine's home directory (`~/.claude`, `~/.codex`, etc.) and
+therefore cannot run on a CI runner; `.github/workflows/validate.yml` runs
+`scripts/validate_workspace.py --no-live` on every pull request and push, and
+the pre-push hook (which does run on this machine) still runs the full
+validator with live checks included.
+
+Change management is deliberately minimal: this is a single-owner repo, so
+GitHub branch protection is not enabled (the owner either bypasses it or is
+taxed by it — either way it adds no real control). The pre-push hook plus CI
+validator are the enforcement mechanism instead.
+
 Wiring: `config/wiring.json` declares every junction/symlink/copy/ledger/scheduled-task attachment point between this repo and the live machine. `python -X utf8 scripts/bootstrap_workspace.py --check` verifies it read-only; `--apply` reproduces it; `--markdown` emits a table.
