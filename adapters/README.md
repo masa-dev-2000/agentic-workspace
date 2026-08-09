@@ -41,3 +41,7 @@ and Gemini CLI). All paths above resolve to the single `skills/` tree in this re
   goes in the adapter layer (agent files, service config, hooks) or the
   spec's `metadata` map.
 - One canonical content tree; adapters may only link, generate, or copy-with-drift-check.
+
+## Distribution
+
+When distributing this workspace (or a subset) to other machines, people, or teams, package it in the Agent Plugins 1.0 format (agent-plugins.org): `plugin.json` manifest + `skills/` (already spec-compliant) + `mcp.json`. Do not adopt it for local wiring — junctions already serve that purpose.
