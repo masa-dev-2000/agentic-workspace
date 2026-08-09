@@ -1,0 +1,147 @@
+{
+  "description": "Collect local privacy-safe lifecycle evidence.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\failure-learning\\scripts\\advice_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\failure-learning\\scripts\\advice_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:\\Users\\masa\\.codex\\skills\\failure-learning\\scripts\\capture_hook.py\"",
+            "commandWindows": "python \"C:\\Users\\masa\\.codex\\skills\\failure-learning\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\excel_capability_guard.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\excel_capability_guard.py\"",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\plugins\\ai-project-manager\\hooks\\capture_prompt.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\plugins\\ai-project-manager\\hooks\\capture_prompt.py\"",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\feedback-learning\\scripts\\capture_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\feedback-learning\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\adaptive-orchestrator\\scripts\\orchestration_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\adaptive-orchestrator\\scripts\\orchestration_hook.py\"",
+            "timeout": 2,
+            "statusMessage": "Planning this request"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2,
+            "statusMessage": "Saving local Skill telemetry"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\skill_status_stop.py\"",
+            "commandWindows": "python -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\skill_status_stop.py\"",
+            "timeout": 2,
+            "statusMessage": "Checking Skill status"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "other",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:\\Users\\masa\\AppData\\Roaming\\uv\\python\\cpython-3.11.15-windows-x86_64-none\\python.exe\" -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\session_naming_on_end.py\"",
+            "commandWindows": "\"C:\\Users\\masa\\AppData\\Roaming\\uv\\python\\cpython-3.11.15-windows-x86_64-none\\python.exe\" -X utf8 \"C:\\Users\\masa\\.codex\\hooks\\session_naming_on_end.py\"",
+            "timeout": 5,
+            "statusMessage": "Naming this session"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:\\Users\\masa\\AppData\\Roaming\\uv\\python\\cpython-3.11.15-windows-x86_64-none\\python.exe\" -X utf8 \"C:\\Users\\masa\\.codex\\skills\\name-work-sessions\\scripts\\session_end_hook.py\" --event SessionStart --require-source resume",
+            "commandWindows": "\"C:\\Users\\masa\\AppData\\Roaming\\uv\\python\\cpython-3.11.15-windows-x86_64-none\\python.exe\" -X utf8 \"C:\\Users\\masa\\.codex\\skills\\name-work-sessions\\scripts\\session_end_hook.py\" --event SessionStart --require-source resume",
+            "timeout": 3,
+            "statusMessage": "Checking resumed session name"
+          }
+        ]
+      }
+    ]
+  }
+}
