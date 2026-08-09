@@ -4,15 +4,21 @@
 Checks (exit 1 on any failure):
 1. Agent frontmatter: required keys, name/filename match, description quality floors,
    tools/disallowedTools syntax.
-2. Drift: copy-synced dirs (hooks/, commands/, config/) must match their live sources.
+2. Wiring: config/wiring.json entries (junction/symlink/copy/ledger/scheduled-task/
+   unmanaged) validate against the schema in config/wiring.schema.md; junction/symlink
+   live paths must resolve to their declared repo target; copy-synced dirs (derived
+   from kind=="copy" entries) must match their live sources.
 3. Criteria: schema of criteria/*.md and CRITERIA.md index consistency
    (use --fix to regenerate the index).
+4. Leaked ledgers: no *.sqlite3*, *.db*, or *.key files anywhere in the repo
+   (this repo is public).
 
 Run: python -X utf8 scripts/validate_workspace.py [--fix]
 """
 from __future__ import annotations
 
 import filecmp
+import json
 import re
 import sys
 from pathlib import Path
@@ -21,21 +27,19 @@ ROOT = Path(__file__).resolve().parent.parent
 HOME = Path.home()
 
 CRITERION_STATUSES = {"proposed", "active", "retired", "graduated"}
-
-# repo path -> live path (copy-synced; junctioned dirs need no check)
-DRIFT_MAP = {
-    ROOT / "hooks" / "claude": HOME / ".claude" / "hooks",
-    ROOT / "hooks" / "codex" / "hooks.json": HOME / ".codex" / "hooks.json",
-    ROOT / "commands" / "claude": HOME / ".claude" / "commands",
-    ROOT / "config" / "CLAUDE.global.md": HOME / ".claude" / "CLAUDE.md",
-    ROOT / "config" / "CLAUDE.user-root.md": HOME / "CLAUDE.md",
-}
-# hooks/codex/ scripts sync to ~/.codex/hooks/, but hooks/codex/hooks.json syncs
-# to ~/.codex/hooks.json (covered by DRIFT_MAP above) — so it is excluded from the
-# directory comparison. Keep this list explicit; do not add silent exclusions.
-CODEX_HOOK_EXCLUDE = ["hooks.json"]
+WIRING_KINDS = {"junction", "symlink", "copy", "ledger", "scheduled-task", "unmanaged"}
 
 errors: list[str] = []
+
+
+def expand(p: str) -> Path:
+    return Path(p.replace("~", str(HOME), 1)) if p.startswith("~") else (ROOT / p)
+
+
+def load_wiring() -> list[dict]:
+    path = ROOT / "config" / "wiring.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data.get("entries", [])
 
 
 def err(msg: str) -> None:
@@ -135,10 +139,92 @@ def diff_tree(repo: Path, live: Path, tag: str, ignore: list[str] | None = None)
 
 
 def check_drift() -> None:
-    for repo, live in DRIFT_MAP.items():
-        diff_tree(repo, live, str(repo.relative_to(ROOT)))
-    diff_tree(ROOT / "hooks" / "codex", HOME / ".codex" / "hooks",
-              "hooks/codex", ignore=CODEX_HOOK_EXCLUDE)
+    for entry in load_wiring():
+        if entry.get("kind") != "copy":
+            continue
+        repo = expand(entry["repo"])
+        live = expand(entry["live"])
+        tag = entry["repo"]
+        diff_tree(repo, live, tag, ignore=entry.get("exclude"))
+
+
+def check_wiring() -> None:
+    entries = load_wiring()
+    if not entries:
+        err("config/wiring.json: no entries")
+        return
+    seen_ids: set[str] = set()
+    for entry in entries:
+        eid = entry.get("id")
+        kind = entry.get("kind")
+        tag = f"config/wiring.json:{eid or '?'}"
+        if not eid:
+            err("config/wiring.json: entry missing 'id'")
+        elif eid in seen_ids:
+            err(f"{tag}: duplicate id")
+        else:
+            seen_ids.add(eid)
+        if kind not in WIRING_KINDS:
+            err(f"{tag}: unknown kind '{kind}' (allowed: {sorted(WIRING_KINDS)})")
+            continue
+        if kind == "unmanaged":
+            if not entry.get("reason"):
+                err(f"{tag}: kind=unmanaged requires 'reason'")
+            continue
+        if kind == "ledger":
+            if not entry.get("live"):
+                err(f"{tag}: kind=ledger requires 'live'")
+            if entry.get("repo"):
+                err(f"{tag}: kind=ledger must not have 'repo'")
+            live = expand(entry["live"]) if entry.get("live") else None
+            if live and not live.exists():
+                err(f"{tag}: ledger live path missing: {live}")
+            continue
+        if kind == "scheduled-task":
+            if not entry.get("name"):
+                err(f"{tag}: kind=scheduled-task requires 'name'")
+            if not entry.get("interval_minutes"):
+                err(f"{tag}: kind=scheduled-task requires 'interval_minutes'")
+            continue
+        # junction, symlink, copy
+        if not entry.get("live"):
+            err(f"{tag}: kind={kind} requires 'live'")
+            continue
+        live = expand(entry["live"])
+        if kind == "copy":
+            if not entry.get("repo"):
+                err(f"{tag}: kind=copy requires 'repo'")
+            continue  # existence/drift for copy entries is handled by check_drift()
+        if kind == "junction":
+            if not entry.get("repo"):
+                err(f"{tag}: kind=junction requires 'repo'")
+                continue
+            target = expand(entry["repo"])
+        else:  # symlink
+            if entry.get("repo"):
+                target = expand(entry["repo"])
+            elif entry.get("target_live"):
+                target = expand(entry["target_live"])
+            else:
+                err(f"{tag}: kind=symlink requires 'repo' or 'target_live'")
+                continue
+        if not live.exists():
+            err(f"{tag}: live path missing: {live}")
+            continue
+        try:
+            resolved = live.resolve()
+            expected = target.resolve() if target.exists() else target
+        except OSError as e:
+            err(f"{tag}: could not resolve live path {live}: {e}")
+            continue
+        if resolved != expected:
+            err(f"{tag}: live path {live} resolves to {resolved}, expected {expected}")
+
+
+def check_no_ledgers_in_repo() -> None:
+    for pattern in ("**/*.sqlite3*", "**/*.db*", "**/*.key"):
+        for path in ROOT.glob(pattern):
+            err(f"leaked ledger/secret file in public repo: {path.relative_to(ROOT)}")
 
 
 def check_criteria(fix: bool) -> None:
@@ -175,14 +261,16 @@ def main() -> int:
     fix = "--fix" in sys.argv
     check_agents()
     check_skills()
+    check_wiring()
     check_drift()
+    check_no_ledgers_in_repo()
     check_criteria(fix)
     if errors:
         print(f"FAIL ({len(errors)} problems)")
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("OK: agents valid, no drift, criteria consistent")
+    print("OK: agents valid, no drift, criteria consistent, wiring valid, no leaked ledgers")
     return 0
 
 

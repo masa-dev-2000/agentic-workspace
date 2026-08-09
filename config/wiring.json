@@ -1,0 +1,99 @@
+{
+  "entries": [
+    {
+      "id": "codex-skills-junction",
+      "kind": "junction",
+      "repo": "skills",
+      "live": "~/.codex/skills",
+      "description": "Codex CLI reads skills from here."
+    },
+    {
+      "id": "agents-skills-junction",
+      "kind": "junction",
+      "repo": "skills",
+      "live": "~/.agents/skills",
+      "description": "Cross-tool neutral skills path (Codex CLI, Gemini CLI)."
+    },
+    {
+      "id": "claude-agents-junction",
+      "kind": "junction",
+      "repo": "agents/claude",
+      "live": "~/.claude/agents",
+      "description": "Claude Code subagent definitions; live via junction."
+    },
+    {
+      "id": "claude-skills-symlink",
+      "kind": "symlink",
+      "live": "~/.claude/skills",
+      "target_live": "~/.codex/skills",
+      "description": "Claude Code skills symlink points at the codex-skills-junction live path, not directly at the repo. That junction resolves into skills/, so this is a chained link."
+    },
+    {
+      "id": "claude-hooks-copy",
+      "kind": "copy",
+      "repo": "hooks/claude",
+      "live": "~/.claude/hooks",
+      "description": "Referenced from ~/.claude/settings.json."
+    },
+    {
+      "id": "claude-commands-copy",
+      "kind": "copy",
+      "repo": "commands/claude",
+      "live": "~/.claude/commands"
+    },
+    {
+      "id": "claude-global-md-copy",
+      "kind": "copy",
+      "repo": "config/CLAUDE.global.md",
+      "live": "~/.claude/CLAUDE.md"
+    },
+    {
+      "id": "claude-user-root-md-copy",
+      "kind": "copy",
+      "repo": "config/CLAUDE.user-root.md",
+      "live": "~/CLAUDE.md"
+    },
+    {
+      "id": "codex-hooks-json-copy",
+      "kind": "copy",
+      "repo": "hooks/codex/hooks.json",
+      "live": "~/.codex/hooks.json"
+    },
+    {
+      "id": "codex-hooks-dir-copy",
+      "kind": "copy",
+      "repo": "hooks/codex",
+      "live": "~/.codex/hooks",
+      "exclude": [
+        "hooks.json"
+      ],
+      "description": "hooks.json is synced separately by codex-hooks-json-copy; excluded here to avoid double-checking."
+    },
+    {
+      "id": "failure-learning-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/failure-learning"
+    },
+    {
+      "id": "feedback-learning-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/feedback-learning"
+    },
+    {
+      "id": "skill-telemetry-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/skill-telemetry"
+    },
+    {
+      "id": "adaptive-orchestrator-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/adaptive-orchestrator"
+    },
+    {
+      "id": "codex-skill-telemetry-optimizer-task",
+      "kind": "scheduled-task",
+      "name": "Codex Skill Telemetry Optimizer",
+      "interval_minutes": 15
+    }
+  ]
+}

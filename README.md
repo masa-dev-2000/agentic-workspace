@@ -17,4 +17,6 @@ path read natively by Codex CLI and Gemini CLI.
 
 Live locations are junctions/symlinks into this repo (skills) or synced copies (see each dir).
 
-Validation: `python -X utf8 scripts/validate_workspace.py` — agent frontmatter, copy-dir drift vs live locations, criteria schema/index (`--fix` regenerates the index). Run before every push.
+Validation: `python -X utf8 scripts/validate_workspace.py` — agent frontmatter, wiring registry (`config/wiring.json`, schema: `config/wiring.schema.md`) and copy-dir drift derived from it, criteria schema/index (`--fix` regenerates the index), leaked-ledger guard. Run before every push.
+
+Wiring: `config/wiring.json` declares every junction/symlink/copy/ledger/scheduled-task attachment point between this repo and the live machine. `python -X utf8 scripts/bootstrap_workspace.py --check` verifies it read-only; `--apply` reproduces it; `--markdown` emits a table.
