@@ -31,7 +31,8 @@ A JSON object with a single key:
 | `kind` | yes | string enum | One of `junction`, `symlink`, `copy`, `ledger`, `scheduled-task`, `unmanaged`. |
 | `repo` | for junction/symlink/copy | string | Path relative to repo root — the canonical, versioned side. |
 | `live` | for junction/symlink/copy/ledger | string | Absolute path on the machine (`~` allowed, expanded to `HOME`). |
-| `exclude` | no | list of string | For `copy` entries covering a directory: filenames excluded from the copy/drift comparison (e.g. `hooks.json` under `hooks/codex` because it is synced by its own separate entry). |
+| `exclude` | no | list of string | For `copy` entries covering a directory: filenames excluded from the copy/drift comparison (e.g. `hooks.json` under `hooks/codex` because it is synced by its own separate entry). For `ledger` entries: filename globs skipped during backup (e.g. a regenerable log store). Every exclusion must state a reason, via the sibling `exclude_reason` field — a free-text string covering the whole `exclude` list. New entries must use `exclude_reason`; do not rely on `description` for exclusion rationale going forward. |
+| `exclude_reason` | required when `exclude` is set | string | Why the globs in `exclude` are safe/intended to skip (e.g. "regenerable app logs, not accumulated user data"). |
 | `reason` | required for `kind=="unmanaged"` | string | Why this path is intentionally excluded from wiring/drift checks. |
 | `name` | for `scheduled-task` | string | The Windows scheduled task name. |
 | `interval_minutes` | for `scheduled-task` | number | Trigger interval in minutes. |

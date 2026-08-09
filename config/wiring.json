@@ -82,12 +82,33 @@
     {
       "id": "skill-telemetry-ledger",
       "kind": "ledger",
-      "live": "~/.codex/skill-telemetry"
+      "live": "~/.codex/skill-telemetry",
+      "exclude": [
+        "optimization/rejected/**",
+        "optimization/legacy-invalid/**"
+      ],
+      "exclude_reason": "43k+ already-adjudicated optimization proposals (rejected) and superseded legacy-invalid records: they are outcomes of decisions already recorded in the DB, are not restorable state, and their file count made a full backup fail to complete within a usable window."
     },
     {
       "id": "adaptive-orchestrator-ledger",
       "kind": "ledger",
       "live": "~/.codex/adaptive-orchestrator"
+    },
+    {
+      "id": "self-clone-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/self-clone",
+      "description": "Accumulated user data: clone.sqlite3 (judgment_axes, episodes, knowledge_observations, evaluations, audit_log) plus identity.key.dpapi."
+    },
+    {
+      "id": "codex-app-state-ledger",
+      "kind": "ledger",
+      "live": "~/.codex/sqlite",
+      "exclude": [
+        "logs_2.sqlite*"
+      ],
+      "exclude_reason": "logs_2.sqlite is regenerable Codex CLI app-log data (78MB), not accumulated user data; the small state/memories/goals/automation dbs alongside it are kept.",
+      "description": "Codex CLI's own application state."
     },
     {
       "id": "codex-skill-telemetry-optimizer-task",

@@ -59,6 +59,17 @@ def load_declared_ledgers() -> dict[str, Path]:
     return out
 
 
+def load_ledger_excludes() -> dict[str, list[str]]:
+    """id -> list of filename glob patterns to skip during backup, from each
+    kind=="ledger" entry's `exclude` field in config/wiring.json."""
+    data = json.loads((ROOT / "config" / "wiring.json").read_text(encoding="utf-8"))
+    out: dict[str, list[str]] = {}
+    for entry in data.get("entries", []):
+        if entry.get("kind") == "ledger" and entry.get("exclude"):
+            out[entry["id"]] = entry["exclude"]
+    return out
+
+
 def discover_undeclared_ledgers(declared: dict[str, Path]) -> list[Path]:
     """Glob ~/.codex/*/ for any dir containing *.sqlite3 or *.db not covered by
     a declared ledger root. An undeclared ledger must break the run rather than
@@ -188,20 +199,56 @@ SQLITE_EXTS = {".sqlite3", ".db"}
 WAL_SHM_SUFFIXES = ("-wal", "-shm")
 
 
-def run_backup(declared: dict[str, Path], run_dir: Path, check_only: bool) -> tuple[list[dict], bool]:
+def run_backup(
+    declared: dict[str, Path],
+    run_dir: Path,
+    check_only: bool,
+    excludes: dict[str, list[str]] | None = None,
+) -> tuple[list[dict], bool]:
+    import fnmatch
+
+    excludes = excludes or {}
     manifest: list[dict] = []
     had_busy_failure = False
 
     for ledger_id, root in declared.items():
+        ledger_excludes = excludes.get(ledger_id, [])
         if not root.exists():
             manifest.append({
                 "source": str(root), "ledger": ledger_id, "bytes": 0, "sha256": None,
                 "sensitive": False, "status": "missing-source", "tool_version": TOOL_VERSION,
             })
             continue
-        for path in sorted(root.rglob("*")):
-            if path.is_dir():
-                continue
+        # Prune excluded subtrees during the walk rather than filtering per file:
+        # walking into a directory of 40k+ adjudicated records cost the entire
+        # backup window even though every file was ultimately skipped.
+        def is_excluded(rel_posix: str) -> bool:
+            for pat in ledger_excludes:
+                base = pat.rstrip("*").rstrip("/")
+                if rel_posix == base or rel_posix.startswith(base + "/"):
+                    return True
+                if fnmatch.fnmatch(rel_posix, pat):
+                    return True
+            return False
+
+        def walk(directory: Path):
+            for child in sorted(directory.iterdir()):
+                rel_posix = child.relative_to(root).as_posix()
+                if is_excluded(rel_posix):
+                    # One manifest row per excluded tree/file — exclusions stay
+                    # visible instead of silently vanishing.
+                    manifest.append({
+                        "source": str(child), "ledger": ledger_id, "bytes": 0, "sha256": None,
+                        "sensitive": False, "status": "skipped-excluded",
+                        "tool_version": TOOL_VERSION,
+                    })
+                    continue
+                if child.is_dir():
+                    yield from walk(child)
+                elif child.is_file():
+                    yield child
+
+        for path in walk(root):
             rel = path.relative_to(root)
             dest = run_dir / ledger_id / rel
 
@@ -228,12 +275,18 @@ def run_backup(declared: dict[str, Path], run_dir: Path, check_only: bool) -> tu
                 })
                 continue
 
-            if path.suffix in SQLITE_EXTS:
-                status, size, digest = backup_sqlite(path, dest)
-                if status == "skipped-busy":
-                    had_busy_failure = True
-            else:
-                status, size, digest = plain_copy(path, dest)
+            try:
+                if path.suffix in SQLITE_EXTS:
+                    status, size, digest = backup_sqlite(path, dest)
+                    if status == "skipped-busy":
+                        had_busy_failure = True
+                else:
+                    status, size, digest = plain_copy(path, dest)
+            except FileNotFoundError:
+                # Source vanished between the rglob() listing and the copy attempt
+                # (e.g. a spool file consumed by a concurrently running process,
+                # such as skill-telemetry). Not a backup failure; record and move on.
+                status, size, digest = "skipped-vanished", 0, None
 
             manifest.append({
                 "source": str(path), "ledger": ledger_id, "bytes": size, "sha256": digest,
@@ -283,6 +336,7 @@ def main() -> int:
     check_only = "--check" in sys.argv
 
     declared = load_declared_ledgers()
+    excludes = load_ledger_excludes()
     if not declared:
         print("ABORT: no kind==\"ledger\" entries found in config/wiring.json")
         return 3
@@ -314,18 +368,20 @@ def main() -> int:
     print(f"Free space at {probe}: {free_bytes / (1024**3):.2f} GiB")
 
     if check_only:
-        manifest, _ = run_backup(declared, run_dir, check_only=True)
+        manifest, _ = run_backup(declared, run_dir, check_only=True, excludes=excludes)
         would_copy = [m for m in manifest if m["status"] == "would-copy"]
         total_bytes = sum(m["bytes"] for m in would_copy)
         skipped_dead = sum(1 for m in manifest if m["status"] == "skipped-dead-snapshot")
         skipped_companion = sum(1 for m in manifest if m["status"] == "skipped-companion")
+        skipped_excluded = sum(1 for m in manifest if m["status"] == "skipped-excluded")
         print(f"CHECK OK: {len(declared)} declared ledger(s), {len(would_copy)} file(s) would be backed up "
               f"({total_bytes / (1024**2):.2f} MiB), {skipped_dead} dead-snapshot file(s) skipped, "
-              f"{skipped_companion} wal/shm companion(s) skipped. Nothing written.")
+              f"{skipped_companion} wal/shm companion(s) skipped, {skipped_excluded} excluded file(s) skipped. "
+              "Nothing written.")
         return 0
 
     run_dir.mkdir(parents=True, exist_ok=True)
-    manifest, had_busy_failure = run_backup(declared, run_dir, check_only=False)
+    manifest, had_busy_failure = run_backup(declared, run_dir, check_only=False, excludes=excludes)
 
     manifest_path = run_dir / "manifest.json"
     manifest_path.write_text(json.dumps({"run": run_dir.name, "tool_version": TOOL_VERSION, "entries": manifest},
@@ -335,7 +391,7 @@ def main() -> int:
     total_bytes = sum(m["bytes"] for m in manifest if m["status"] == "ok")
     print(f"Backed up {ok_count} file(s), {total_bytes / (1024**2):.2f} MiB, manifest: {manifest_path}")
 
-    for status_name in ("skipped-busy", "skipped-dead-snapshot", "skipped-companion", "missing-source"):
+    for status_name in ("skipped-busy", "skipped-dead-snapshot", "skipped-companion", "skipped-excluded", "skipped-vanished", "missing-source"):
         n = sum(1 for m in manifest if m["status"] == status_name)
         if n:
             print(f"  {status_name}: {n}")
