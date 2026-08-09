@@ -2165,6 +2165,117 @@ skills:
     contractFingerprint: contract-v2:document.business.universal-design@1.0.0
     contractContentDigest: sha256:d858d040f6d4bd267a8c280994418fbc263c22a69404b9661e82166c5328f483
 
+  - key: find-skills
+    capability: meta.skill.discover
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Help the user discover and install agent skills from public skill registries when they ask for functionality that might exist as an installable skill.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: find-skills
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: 'Help the user discover and install agent skills from public skill registries when they ask for functionality that might exist as an installable skill.'
+    nonGoals: [implementing the capability directly, private skill authoring]
+    triggers:
+      positive: [find a skill, install a skill, is there a skill for]
+      negative: [implementing the capability directly, private skill authoring]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: request, type: intent-ref}]
+      outputs: [{name: guidance, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [user-request]
+      writes: [{domain: find-skills-guidance, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [request restated, guidance delivered]
+      verifier: human
+      acceptedEvidence: [artifact]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [request-restated]
+    version: 1.0.0
+    contractFingerprint: contract-v2:meta.skill.discover@1.0.0
+    contractContentDigest: 'sha256:7dee42adb0c6ffcdbdab4a5c7e5e42090ff7a9014a2692d123f93cd37b113acb'
+    maturity: alpha
+  - key: presentation-deck
+    capability: presentation.deck.structure
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Structure compelling design presentations for stakeholders, reviews, and showcases.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: presentation-deck
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: 'Structure compelling design presentations for stakeholders, reviews, and showcases.'
+    nonGoals: [visual slide design rules, non-presentation documents]
+    triggers:
+      positive: [structure a presentation, deck outline, stakeholder review deck]
+      negative: [visual slide design rules, non-presentation documents]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: request, type: intent-ref}]
+      outputs: [{name: guidance, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [user-request]
+      writes: [{domain: presentation-deck-guidance, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [request restated, guidance delivered]
+      verifier: human
+      acceptedEvidence: [artifact]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [request-restated]
+    version: 1.0.0
+    contractFingerprint: contract-v2:presentation.deck.structure@1.0.0
+    contractContentDigest: 'sha256:cb170e354216f453a93dfd136e853010800c5269c3f81ac33cb91fb8e807c119'
+    maturity: alpha
+  - key: presentation-design
+    capability: presentation.slide.visual-design
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Provide visual design guidance for bold, minimal presentations: layout patterns, typography hierarchy, color specifications, and slide composition rules.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: presentation-design
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: 'Provide visual design guidance for bold, minimal presentations: layout patterns, typography hierarchy, color specifications, and slide composition rules.'
+    nonGoals: [deck structure/narrative, non-presentation UI design]
+    triggers:
+      positive: [how should this slide look, slide layout, presentation design guidance]
+      negative: [deck structure/narrative, non-presentation UI design]
+    dependencies: {capabilities: [], components: []}
+    interfaces:
+      inputs: [{name: request, type: intent-ref}]
+      outputs: [{name: guidance, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [user-request]
+      writes: [{domain: presentation-design-guidance, mode: artifact}]
+      ownerOf: []
+    completion:
+      proof: [request restated, guidance delivered]
+      verifier: human
+      acceptedEvidence: [artifact]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [request-restated]
+    version: 1.0.0
+    contractFingerprint: contract-v2:presentation.slide.visual-design@1.0.0
+    contractContentDigest: 'sha256:f2bcc79a001befc610d641faa1f9d9c557f182442b5667634d659a4addf3401a'
+    maturity: alpha
   - key: kyoryokutai-ui
     capability: project.kyoryokutai.ui-design
     primaryCategory: decision-planning-governance

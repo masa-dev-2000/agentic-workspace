@@ -1,6 +1,11 @@
 # agentic-workspace
 
-Single source of truth for the personal agentic harness shared by Codex and Claude Code.
+Provider-neutral single source of truth for a personal agentic harness — usable from
+ANY agent service. The core (`skills/`) follows the open Agent Skills specification
+(agentskills.io); everything vendor-specific lives in thin adapter layers
+(see `adapters/README.md` for the wiring matrix and onboarding checklist).
+Currently wired: Claude Code, OpenAI Codex CLI, and the neutral `~/.agents/skills`
+path read natively by Codex CLI and Gemini CLI.
 
 - `skills/` — skill collection (live: junctioned from `~/.codex/skills`; `~/.claude/skills` symlinks there)
 - `agents/claude/` — Claude Code subagent definitions (LIVE via junction from `~/.claude/agents` — a file here is immediately active)

@@ -84,6 +84,36 @@ def check_agents() -> None:
                 err(f"{tag}: {key} is not a comma-separated tool list: '{fm[key]}'")
 
 
+PORTABLE_SKILL_FIELDS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+
+
+def check_skills() -> None:
+    """Enforce the Agent Skills spec portable core (agentskills.io) on every skill,
+    so the tree stays loadable by any conforming agent service."""
+    for d in sorted((ROOT / "skills").iterdir()):
+        sk = d / "SKILL.md"
+        if not d.is_dir() or not sk.is_file():
+            continue
+        tag = f"skills/{d.name}"
+        fm = parse_frontmatter(sk)
+        if fm is None:
+            err(f"{tag}: SKILL.md missing frontmatter")
+            continue
+        name = fm.get("name", "")
+        desc = fm.get("description", "")
+        if name != d.name:
+            err(f"{tag}: name '{name}' != directory name")
+        if not re.fullmatch(r"[a-z0-9-]{1,64}", name or ""):
+            err(f"{tag}: name violates spec charset/length")
+        if not desc:
+            err(f"{tag}: missing description")
+        elif len(desc) > 1024:
+            err(f"{tag}: description {len(desc)} chars exceeds spec max 1024")
+        nonportable = set(fm) - PORTABLE_SKILL_FIELDS
+        if nonportable:
+            err(f"{tag}: vendor-specific frontmatter {sorted(nonportable)} — move to adapters or the metadata map")
+
+
 def diff_tree(repo: Path, live: Path, tag: str) -> None:
     if not live.exists():
         err(f"{tag}: live path missing: {live}")
@@ -142,6 +172,7 @@ def check_criteria(fix: bool) -> None:
 def main() -> int:
     fix = "--fix" in sys.argv
     check_agents()
+    check_skills()
     check_drift()
     check_criteria(fix)
     if errors:
