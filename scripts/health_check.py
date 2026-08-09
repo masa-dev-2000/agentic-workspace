@@ -96,7 +96,12 @@ def _find_bash() -> str:
         if Path(c).is_file():
             return c
     found = shutil.which("bash")
-    return found or "bash"
+    # A probe that silently falls back to the WSL stub would execute nothing and
+    # report every hook as passing — the exact fail-open this script exists to
+    # detect. Refuse to guess: return "" so the caller fails loudly instead.
+    if found and "windows\\system32" not in found.lower():
+        return found
+    return ""
 
 
 _BASH = _find_bash()
@@ -131,6 +136,12 @@ def run_hook(hook_path: Path, stdin_json: dict) -> tuple[int, str, str]:
 def check_defense_probe(hooks_dir: Path) -> tuple[bool, list[str]]:
     lines: list[str] = []
     ok = True
+
+    if not _BASH:
+        return False, [
+            "ERROR: no real Git Bash found (only the WSL stub or nothing on PATH) — "
+            "the probe cannot execute hooks, so hook health is UNKNOWN, not OK"
+        ]
 
     actual_hooks = sorted(p.name for p in hooks_dir.glob("*.sh"))
     if not actual_hooks:
