@@ -29,9 +29,9 @@ and Gemini CLI). All paths above resolve to the single `skills/` tree in this re
    skills (portable), not agent files (vendor-specific, no cross-vendor standard).
 3. Instructions: generate the service's instruction file (AGENTS.md dialect or
    equivalent) from `config/`; do not fork the content.
-4. Hooks/automation: add `hooks/<vendor>/` and extend `DRIFT_MAP` in
-   `scripts/validate_workspace.py` so copies cannot drift silently
-   (criterion: drift-coverage-completeness).
+4. Hooks/automation: add `hooks/<vendor>/` and add a `kind: copy` entry to
+   `config/wiring.json` so copies cannot drift silently
+   (criterion: drift-coverage-completeness; schema: `config/wiring.schema.md`).
 5. Run `python -X utf8 scripts/validate_workspace.py` and update the wiring
    matrix above.
 
