@@ -57,10 +57,15 @@ def parse_frontmatter(path: Path) -> dict[str, str] | None:
 
 
 def check_agents() -> None:
-    agents_dir = ROOT / "agents" / "claude"
-    for path in sorted(agents_dir.glob("*.md")):
+    live = ROOT / "agents" / "claude"
+    proposed = ROOT / "agents" / "proposed"
+    paths = sorted(live.glob("*.md")) + sorted(proposed.glob("*.md")) if proposed.is_dir() else sorted(live.glob("*.md"))
+    live_names = {p.stem for p in live.glob("*.md")}
+    for path in paths:
+        if path.parent == proposed and path.stem in live_names:
+            err(f"agents/proposed/{path.name}: same name as a live agent — remove one")
         fm = parse_frontmatter(path)
-        tag = f"agents/claude/{path.name}"
+        tag = f"agents/{path.parent.name}/{path.name}"
         if fm is None:
             err(f"{tag}: missing or malformed frontmatter block")
             continue

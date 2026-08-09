@@ -1,7 +1,7 @@
 ---
 id: validator-signal-hygiene
 statement: Validator warning baselines must be zero or explicitly acknowledged per finding, because a permanently noisy warn channel masks every new warning.
-status: proposed
+status: active
 version: 1
 ---
 
@@ -35,3 +35,4 @@ output of a healthy validator run is silence.
 ## Status History
 
 - 2026-08-09: drafted as proposed (bootstrap; axes reported by issue-ledger).
+- 2026-08-09: activated. Approval: user (masa) explicit approval in Claude Code session, 「1,2. 承認」, 2026-08-09.

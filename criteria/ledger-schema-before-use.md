@@ -1,7 +1,7 @@
 ---
 id: ledger-schema-before-use
 statement: Any machine-consumed ledger or contract directory must have a documented schema and a validator before its first entry is written.
-status: proposed
+status: active
 version: 1
 ---
 
@@ -38,3 +38,4 @@ who writes, who reads, and what state transitions mean.
 ## Status History
 
 - 2026-08-09: drafted as proposed (bootstrap; axes reported by issue-ledger).
+- 2026-08-09: activated. Approval: user (masa) explicit approval in Claude Code session, 「1,2. 承認」, 2026-08-09.

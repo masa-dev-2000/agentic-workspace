@@ -1,7 +1,7 @@
 ---
 id: drift-coverage-completeness
 statement: Every synced directory and every path referenced from outside the workspace must be covered by the drift validator, with no hardcoded allowlists that silently exclude new entries.
-status: proposed
+status: active
 version: 1
 ---
 
@@ -38,3 +38,4 @@ new hook or plugin automatically brings it under validation.
 ## Status History
 
 - 2026-08-09: drafted as proposed (bootstrap; axes reported by issue-ledger).
+- 2026-08-09: activated. Approval: user (masa) explicit approval in Claude Code session, 「1,2. 承認」, 2026-08-09.
