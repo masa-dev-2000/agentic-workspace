@@ -1,0 +1,27 @@
+name: Idea / feature request
+description: Suggest something new, backed by a concrete reason.
+title: "[idea] "
+labels: ["status:needs-triage", "intake:external"]
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        Required. Give at least one of: a file:line reference, a command you ran plus its
+        observed output, or a log excerpt that shows why this is needed. Do NOT paste secrets,
+        credentials, tokens, paths outside this repository, or contents of this workspace's
+        internal ledger files — this repo is public.
+      placeholder: |
+        e.g. src/foo.py:42
+        e.g. $ command --flag
+             observed output: ...
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What you want and why
+      description: What should change, and what does the evidence above show is missing?
+    validations:
+      required: true

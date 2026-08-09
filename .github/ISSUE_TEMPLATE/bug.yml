@@ -1,0 +1,27 @@
+name: Bug report
+description: Report something that is broken, with evidence.
+title: "[bug] "
+labels: ["status:needs-triage", "intake:external"]
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        Required. Give at least one of: a file:line reference, a command you ran plus its
+        observed output, or a log excerpt. Do NOT paste secrets, credentials, tokens, paths
+        outside this repository, or contents of this workspace's internal ledger files —
+        this repo is public.
+      placeholder: |
+        e.g. src/foo.py:42
+        e.g. $ command --flag
+             observed output: ...
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
