@@ -40,3 +40,5 @@ taxed by it — either way it adds no real control). The pre-push hook plus CI
 validator are the enforcement mechanism instead.
 
 Wiring: `config/wiring.json` declares every junction/symlink/copy/ledger/scheduled-task attachment point between this repo and the live machine. `python -X utf8 scripts/bootstrap_workspace.py --check` verifies it read-only; `--apply` reproduces it; `--markdown` emits a table.
+
+Operations: see `docs/OPERATIONS.md` for blast radius, cadence, and recovery runbooks.
