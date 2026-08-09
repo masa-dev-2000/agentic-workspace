@@ -13,7 +13,13 @@ Checks (exit 1 on any failure):
 4. Leaked ledgers: no *.sqlite3*, *.db*, or *.key files anywhere in the repo
    (this repo is public).
 
-Run: python -X utf8 scripts/validate_workspace.py [--fix]
+Run: python -X utf8 scripts/validate_workspace.py [--fix] [--no-live]
+
+--no-live skips the live-filesystem checks (drift + wiring liveness) that
+require this machine's actual home directory (~/.claude, ~/.codex, etc.) to
+exist. A CI runner has no such filesystem, so those checks would fail
+spuriously there. --no-live still runs agents/skills/criteria/leak checks and
+prints which check groups were skipped.
 """
 from __future__ import annotations
 
@@ -28,6 +34,11 @@ HOME = Path.home()
 
 CRITERION_STATUSES = {"proposed", "active", "retired", "graduated"}
 WIRING_KINDS = {"junction", "symlink", "copy", "ledger", "scheduled-task", "unmanaged"}
+
+# Structured approval line format, see criteria/SCHEMA.md.
+APPROVAL_LINE_RE = re.compile(
+    r'Approval:\s*actor=\S+\s+channel=\S+\s+date=\d{4}-\d{2}-\d{2}\s+ref="[^"]*"'
+)
 
 errors: list[str] = []
 
@@ -148,7 +159,10 @@ def check_drift() -> None:
         diff_tree(repo, live, tag, ignore=entry.get("exclude"))
 
 
-def check_wiring() -> None:
+def check_wiring(no_live: bool = False) -> None:
+    """Validate config/wiring.json. Schema/structural checks always run; the
+    live-filesystem checks (path existence, junction/symlink resolution) are
+    skipped when no_live is True (see --no-live)."""
     entries = load_wiring()
     if not entries:
         err("config/wiring.json: no entries")
@@ -176,6 +190,8 @@ def check_wiring() -> None:
                 err(f"{tag}: kind=ledger requires 'live'")
             if entry.get("repo"):
                 err(f"{tag}: kind=ledger must not have 'repo'")
+            if no_live:
+                continue
             live = expand(entry["live"]) if entry.get("live") else None
             if live and not live.exists():
                 err(f"{tag}: ledger live path missing: {live}")
@@ -190,7 +206,6 @@ def check_wiring() -> None:
         if not entry.get("live"):
             err(f"{tag}: kind={kind} requires 'live'")
             continue
-        live = expand(entry["live"])
         if kind == "copy":
             if not entry.get("repo"):
                 err(f"{tag}: kind=copy requires 'repo'")
@@ -208,6 +223,9 @@ def check_wiring() -> None:
             else:
                 err(f"{tag}: kind=symlink requires 'repo' or 'target_live'")
                 continue
+        if no_live:
+            continue
+        live = expand(entry["live"])
         if not live.exists():
             err(f"{tag}: live path missing: {live}")
             continue
@@ -233,7 +251,7 @@ def check_criteria(fix: bool) -> None:
         return  # not bootstrapped yet — nothing to validate
     index_lines: list[str] = []
     for path in sorted(crit_dir.glob("*.md")):
-        if path.name == "CRITERIA.md":
+        if path.name in ("CRITERIA.md", "SCHEMA.md"):
             continue
         fm = parse_frontmatter(path)
         tag = f"criteria/{path.name}"
@@ -249,6 +267,14 @@ def check_criteria(fix: bool) -> None:
             err(f"{tag}: id '{fm['id']}' does not match filename")
         if fm.get("id") and fm.get("statement"):
             index_lines.append(f"- `{fm['id']}` [{fm.get('status', '?')}] {fm['statement']}")
+        if fm.get("status") == "active":
+            body = path.read_text(encoding="utf-8")
+            if not APPROVAL_LINE_RE.search(body):
+                err(
+                    f"{tag}: status=active requires a Status History line matching "
+                    f"'Approval: actor=<provider>:<id> channel=<...> date=YYYY-MM-DD ref=\"...\"' "
+                    f"(see criteria/SCHEMA.md)"
+                )
     index_path = crit_dir / "CRITERIA.md"
     expected = "# Criteria Index\n\n" + "\n".join(index_lines) + "\n"
     if fix:
@@ -259,12 +285,16 @@ def check_criteria(fix: bool) -> None:
 
 def main() -> int:
     fix = "--fix" in sys.argv
+    no_live = "--no-live" in sys.argv
     check_agents()
     check_skills()
-    check_wiring()
-    check_drift()
+    check_wiring(no_live=no_live)
+    if not no_live:
+        check_drift()
     check_no_ledgers_in_repo()
     check_criteria(fix)
+    if no_live:
+        print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
     if errors:
         print(f"FAIL ({len(errors)} problems)")
         for e in errors:
