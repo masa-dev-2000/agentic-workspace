@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Weekly active health probe for the agentic-workspace (defense probe, wiring, backup freshness, scheduled tasks). Writes a report to %USERPROFILE%\.claude\health\latest.md. See scripts/health_check.py.</Description>
+    <URI>\agentic-weekly-health</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-08-17T09:00:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByWeek>
+        <WeeksInterval>1</WeeksInterval>
+        <DaysOfWeek>
+          <Monday />
+        </DaysOfWeek>
+      </ScheduleByWeek>
+    </CalendarTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>python</Command>
+      <Arguments>-X utf8 "C:\Users\masa\dev\agentic-workspace\scripts\health_check.py"</Arguments>
+      <WorkingDirectory>C:\Users\masa\dev\agentic-workspace</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
