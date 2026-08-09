@@ -115,6 +115,20 @@
       "kind": "scheduled-task",
       "name": "Codex Skill Telemetry Optimizer",
       "interval_minutes": 15
+    },
+    {
+      "id": "agentic-weekly-health-task",
+      "kind": "scheduled-task",
+      "name": "agentic-weekly-health",
+      "interval_minutes": 10080,
+      "description": "Weekly (Monday 09:00) active health probe. See scripts/scheduled-tasks/agentic-weekly-health.xml and scripts/health_check.py."
+    },
+    {
+      "id": "agentic-ledger-backup-task",
+      "kind": "scheduled-task",
+      "name": "agentic-ledger-backup",
+      "interval_minutes": 1440,
+      "description": "Daily backup of the learning ledgers. See scripts/scheduled-tasks/agentic-ledger-backup.xml and scripts/backup_ledgers.py."
     }
   ]
 }
