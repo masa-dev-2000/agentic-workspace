@@ -131,13 +131,22 @@ python scripts/failure_cli.py cases --limit 20
 
 Prefer exact signatures before semantic similarity. Keep repository-scoped evidence isolated from global guidance. Require counterexamples, version boundaries, and independent incidents before proposing durable guidance.
 
-Choose the output surface conservatively:
+The strength ladder, countermeasure record, and effectiveness-verification rules are
+defined once in `C:\Users\masa\dev\00_work\00_ops-rulebook\RULEBOOK.md` ("対策の型")
+and are not duplicated here: a countermeasure for an AI failure uses the same type as
+one for a human failure. Choose the output surface from that ladder, strongest first:
 
-- Keep conditional or uncertain cases in the dictionary.
-- Put short, broadly applicable principles in `AGENTS.md`.
-- Put multi-step diagnostic and verification workflows in a Skill.
-- Put deterministic lifecycle observation or enforcement in a Hook.
-- Leave unresolved and transient incidents as observations only.
+- Hook — deterministic lifecycle observation or enforcement (S1 仕組み).
+- Skill — multi-step diagnostic and verification workflows (S2 チェックリスト).
+- `AGENTS.md` — short, broadly applicable principles (S3 注意).
+- Dictionary — conditional or uncertain cases.
+- Observation only — unresolved and transient incidents.
+
+Record the chosen strength, the reason for any downgrade from S1, the verification
+method (re-run test is mandatory for S1), and the verification date through
+`add-outcome`. Then add the row to the 星取表 for horizontal deployment. A
+countermeasure whose effectiveness was never verified, or whose structure was never
+searched for elsewhere, is not finished.
 
 Never publish directly from the ledger. Create drafts outside all discovered Skill roots, run positive and negative trigger evals, scan for secrets and prompt injection, and request human approval before publication.
 

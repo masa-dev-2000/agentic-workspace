@@ -81,6 +81,29 @@ week % 13 == 1 のときだけ実行する
 （`agents/claude/agent-steward.md` の Audit 責務どおり: description重複、tools逸脱、
 使用実績ゼロのエージェントなど）。
 
+### Step 6: 対策の有効性確認（期日到来分）
+
+ミス防止ルールブックの星取表で、検証方法が決まっているのに結果が空欄の行を列挙する。
+
+```bash
+python -X utf8 -c "
+import openpyxl, pathlib
+p = pathlib.Path.home()/'dev/00_work/00_ops-rulebook/ミス防止ルール星取表.xlsx'
+ws = openpyxl.load_workbook(p).active
+hdr = [ws.cell(4,c).value for c in range(1, ws.max_column+1)]
+im, ir = hdr.index('検証方法')+1, hdr.index('検証期日／結果')+1
+for r in range(5, ws.max_row+1):
+    rule, method, result = ws.cell(r,1).value, ws.cell(r,im).value, ws.cell(r,ir).value
+    if rule and method and not result:
+        print(f'未検証: {rule} / 方法={method}')
+"
+```
+
+出力があれば、対策ごとに検証方法（再現テスト／発火証跡／期間観測）に従って**実際に確認する**。
+再現テストは、実際に同じ失敗を起こして対策が止めるかを見る。結果を該当セルへ
+`YYYY-MM-DD 有効／無効／判定不能` の形で記入する。打ちっぱなしの対策を残さないことが目的。
+判定が「無効」なら、RULEBOOK.md の対策の型に従って強度を上げ直す（S2→S1 等）。
+
 ## このコマンドがやらないこと
 
 - PR のマージ（`/kio-devmerge` `/kio-mainmerge` の領域）
@@ -90,5 +113,5 @@ week % 13 == 1 のときだけ実行する
 
 ## 最後に
 
-Step 0〜5 それぞれの結果（件数・渡した先・スキップした場合はその理由）を1つのレポートに
+Step 0〜6 それぞれの結果（件数・渡した先・スキップした場合はその理由）を1つのレポートに
 まとめて提示する。
