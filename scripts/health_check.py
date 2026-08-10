@@ -231,17 +231,36 @@ def check_scheduled_tasks() -> tuple[bool | None, list[str]]:
             continue
 
         entry_ok = True
-        if last_result not in ("0", "0x0"):
+        # Windows Task Scheduler success codes that are not literal 0:
+        #   0x41301 (267009) SCHED_S_TASK_RUNNING     — running right now
+        #   0x41303 (267011) SCHED_S_TASK_HAS_NOT_RUN — registered, first
+        #                                               trigger still pending
+        # Treating these as failures would make a healthy scheduler look broken.
+        running = last_result in ("267009", "0x41301")
+        never_ran = last_result in ("267011", "0x41303")
+        if last_result not in ("0", "0x0") and not (never_ran or running):
             entry_ok = False
             lines.append(f"FAIL: {name}: Last Result = {last_result} (nonzero)")
+
+        if never_ran:
+            any_unverified = True
+            lines.append(f"UNVERIFIED: {name}: registered but has not run yet (first trigger pending)")
+            continue
 
         if last_run == "unverified":
             any_unverified = True
             lines.append(f"UNVERIFIED: {name}: Last Run Time not available from this platform's query mechanism")
         else:
             try:
-                last_run_dt = datetime.strptime(last_run, WINDOWS_LAST_RUN_FORMAT)
-                age_minutes = (datetime.now() - last_run_dt).total_seconds() / 60
+                # The platform adapter normalizes every scheduler's timestamp to
+                # ISO 8601 (locale-independent); fall back to the older Windows
+                # locale format only if that is what we were handed.
+                try:
+                    last_run_dt = datetime.fromisoformat(last_run)
+                except ValueError:
+                    last_run_dt = datetime.strptime(last_run, WINDOWS_LAST_RUN_FORMAT)
+                now = datetime.now(last_run_dt.tzinfo) if last_run_dt.tzinfo else datetime.now()
+                age_minutes = (now - last_run_dt).total_seconds() / 60
                 max_age = 2 * interval if interval else None
                 if max_age is not None and age_minutes > max_age:
                     entry_ok = False

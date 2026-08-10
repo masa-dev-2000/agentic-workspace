@@ -254,25 +254,42 @@ def query_task(name: str) -> dict:
     plat = _plat()
 
     if plat == WINDOWS:
+        # Query via PowerShell, not `schtasks /Query`: schtasks localizes its
+        # field labels (a Japanese Windows prints 前回の結果:, not "Last Result:"),
+        # so string matching silently reported every task as unverified — the
+        # check looked healthy while detecting nothing. Get-ScheduledTaskInfo
+        # returns fixed English property names on every locale.
+        ps = (
+            f"$ErrorActionPreference='Stop'; "
+            f"Get-ScheduledTaskInfo -TaskName '{name}' | "
+            f"Select-Object LastTaskResult,LastRunTime,NextRunTime | ConvertTo-Json -Compress"
+        )
         try:
             raw = subprocess.run(
-                ["schtasks", "/Query", "/TN", name, "/FO", "LIST", "/V"],
-                capture_output=True, timeout=15,
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
+                capture_output=True, text=True, encoding="oem", errors="replace", timeout=20,
             )
         except (FileNotFoundError, PermissionError, OSError) as e:
             return {"exists": None, "last_result": None, "last_run": "unverified", "error": str(e)}
         if raw.returncode != 0:
-            err = (raw.stderr or raw.stdout).decode("cp932", errors="replace").strip()
-            return {"exists": False, "last_result": None, "last_run": "unverified", "error": err}
-        out = raw.stdout.decode("cp932", errors="replace")
-        last_result = last_run = None
-        for line in out.splitlines():
-            low = line.strip().lower()
-            if low.startswith("last result:"):
-                last_result = line.split(":", 1)[1].strip()
-            elif low.startswith("last run time:"):
-                last_run = line.split(":", 1)[1].strip()
-        return {"exists": True, "last_result": last_result, "last_run": last_run or "unverified"}
+            return {"exists": False, "last_result": None, "last_run": "unverified",
+                    "error": (raw.stderr or raw.stdout).strip()[:200]}
+        import json as _json
+        import re as _re
+        try:
+            info = _json.loads(raw.stdout)
+        except ValueError as e:
+            return {"exists": None, "last_result": None, "last_run": "unverified",
+                    "error": f"unparseable PowerShell output: {e}"}
+        # PowerShell serializes DateTime as /Date(<epoch millis>)/
+        stamp = str(info.get("LastRunTime") or "")
+        m = _re.search(r"/Date\((-?\d+)", stamp)
+        if m:
+            from datetime import datetime, timezone
+            last_run = datetime.fromtimestamp(int(m.group(1)) / 1000, timezone.utc).isoformat()
+        else:
+            last_run = stamp or "unverified"
+        return {"exists": True, "last_result": str(info.get("LastTaskResult")), "last_run": last_run}
 
     if plat == MACOS:
         label = _launchd_label(name)
