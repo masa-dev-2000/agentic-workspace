@@ -26,6 +26,7 @@ from __future__ import annotations
 import filecmp
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -283,6 +284,20 @@ def check_criteria(fix: bool) -> None:
         err("criteria/CRITERIA.md: index out of date (run with --fix to regenerate)")
 
 
+def check_generated_docs(fix: bool) -> None:
+    """Generated doc blocks must match their generators. A doc that only claims
+    to be generated drifts exactly like a hand-written one."""
+    sync = ROOT / "scripts" / "sync_generated_docs.py"
+    if not sync.is_file():
+        return
+    args = [sys.executable, "-X", "utf8", str(sync)] + ([] if fix else ["--check"])
+    proc = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", cwd=ROOT)
+    if proc.returncode != 0:
+        for line in (proc.stdout or proc.stderr).strip().splitlines():
+            err(f"generated docs: {line.strip()}")
+
+
 def main() -> int:
     fix = "--fix" in sys.argv
     no_live = "--no-live" in sys.argv
@@ -293,6 +308,7 @@ def main() -> int:
         check_drift()
     check_no_ledgers_in_repo()
     check_criteria(fix)
+    check_generated_docs(fix)
     if no_live:
         print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
     if errors:

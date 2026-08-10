@@ -64,6 +64,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 For non-trivial implementation or bugfix work, load the `quality-protocol` skill and follow its gates. After implementing, run the `adversarial-reviewer` agent on the diff and iterate until it passes.
 
+## 6. Creating or changing a Skill
+
+`~/.claude/skills` is a link into the agentic-workspace repo, so anything written there goes live in Claude Code, Codex, and any `~/.agents/skills` runtime at once — there is no deploy step and no staging copy.
+
+Before creating or editing a skill, read `~/.claude/skills/AGENTS.md` ("Creating a new Skill") and follow it. Claude Code does not load AGENTS.md on its own (it reads CLAUDE.md only), so this pointer is the only thing carrying those rules into a Claude session.
+
+The parts that fail the push if skipped: justify the skill against existing ones first, keep frontmatter to the portable subset (`name`, `description`, optionally `license`/`compatibility`/`metadata`/`allowed-tools`), register it in `skills/skill-registry.yaml`, and run `python -X utf8 scripts/validate_workspace.py`.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
