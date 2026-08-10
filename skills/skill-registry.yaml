@@ -2200,7 +2200,7 @@ skills:
     evals: [request-restated]
     version: 1.0.0
     contractFingerprint: contract-v2:meta.skill.discover@1.0.0
-    contractContentDigest: 'sha256:7dee42adb0c6ffcdbdab4a5c7e5e42090ff7a9014a2692d123f93cd37b113acb'
+    contractContentDigest: sha256:7dee42adb0c6ffcdbdab4a5c7e5e42090ff7a9014a2692d123f93cd37b113acb
     maturity: alpha
   - key: presentation-deck
     capability: presentation.deck.structure
@@ -2237,7 +2237,7 @@ skills:
     evals: [request-restated]
     version: 1.0.0
     contractFingerprint: contract-v2:presentation.deck.structure@1.0.0
-    contractContentDigest: 'sha256:cb170e354216f453a93dfd136e853010800c5269c3f81ac33cb91fb8e807c119'
+    contractContentDigest: sha256:cb170e354216f453a93dfd136e853010800c5269c3f81ac33cb91fb8e807c119
     maturity: alpha
   - key: presentation-design
     capability: presentation.slide.visual-design
@@ -2274,7 +2274,7 @@ skills:
     evals: [request-restated]
     version: 1.0.0
     contractFingerprint: contract-v2:presentation.slide.visual-design@1.0.0
-    contractContentDigest: 'sha256:f2bcc79a001befc610d641faa1f9d9c557f182442b5667634d659a4addf3401a'
+    contractContentDigest: sha256:f2bcc79a001befc610d641faa1f9d9c557f182442b5667634d659a4addf3401a
     maturity: alpha
   - key: kyoryokutai-ui
     capability: project.kyoryokutai.ui-design
@@ -2311,7 +2311,7 @@ skills:
     evals: [screen-intent-restated, viewport-check-recorded]
     version: 1.0.0
     contractFingerprint: contract-v2:project.kyoryokutai.ui-design@1.0.0
-    contractContentDigest: 'sha256:c6c7f9a8cf33bee219769ae22a29659e8f6183c7e6147ef6654a1641f9aa35cc'
+    contractContentDigest: sha256:c6c7f9a8cf33bee219769ae22a29659e8f6183c7e6147ef6654a1641f9aa35cc
     maturity: alpha
   - key: reduce-ui-cognitive-cost
     capability: design.uiux.cognitive-cost.reduce
@@ -2414,3 +2414,40 @@ skills:
     version: 0.1.0
     contractFingerprint: contract-v2:skill.design.reusable.standard@0.1.0
     contractContentDigest: sha256:8088d7fcc17f72009e65749ca4a18e7598f620358f83262ad88b9180ac99e2fc
+
+  - key: mistake-proofing
+    capability: operations.mistake.prevention
+    primaryCategory: decision-planning-governance
+    primaryResponsibility: 'Enforce the global mistake-prevention rulebook: record business incidents with two-track why-why analysis, check dependency ledgers before irreversible deletions, register volatile external commitments, and update the horizontal-deployment scorecard.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: mistake-proofing
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Enforce the global mistake-prevention rulebook (00_ops-rulebook) across projects with incident records, dependency-ledger checks, and horizontal deployment.
+    nonGoals: [handle Claude tool-execution failures (failure-loop-guard/failure-learning own those), draft external submission documents themselves, execute deletions before ledger check confirmation, punish or attribute blame to individuals]
+    triggers:
+      positive: [user reports a business mistake or near-miss, 再発防止 or なぜなぜ分析 requested, account or service deletion/cancellation requested, external submission with volatile information, deadline-bound procedure received]
+      negative: [tool or command failure during normal work, generic document drafting, project task management]
+    dependencies:
+      capabilities: []
+      components: []
+    interfaces:
+      inputs: [{name: incidentReport, type: intent-ref}, {name: rulebook, type: artifact-ref}]
+      outputs: [{name: incidentRecord, type: artifact-ref}, {name: ledgerUpdate, type: artifact-ref}]
+    authority: {default: deny, effects: [read, workspace-write]}
+    data: {reads: [rulebook-source, dependency-ledgers], writes: [{domain: rulebook-source, mode: artifact}], ownerOf: []}
+    completion:
+      proof: [incident record or ledger row exists as a real file with reported path, deletion requests show a ledger-check result confirmed by the user before execution, countermeasures ranked mechanism over checklist over attention, horizontal-deployment question asked once per incident]
+      verifier: self
+      acceptedEvidence: [artifact, validate]
+    failure: *standardFailure
+    telemetry: *telemetry
+    evals: [incident-two-track-recording, pre-deletion-ledger-check, external-submission-registration, tool-failure-negative-routing]
+    maturity: alpha
+    version: 0.1.0
+    contractFingerprint: contract-v2:operations.mistake.prevention@0.1.0
+    contractContentDigest: sha256:2afea4f2199f928a43ba6b8e278ae3d2164661be8b5bcc7dc688c7599392fd48
