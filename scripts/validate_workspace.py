@@ -298,6 +298,37 @@ def check_generated_docs(fix: bool) -> None:
             err(f"generated docs: {line.strip()}")
 
 
+DOC_PATH_RE = re.compile(
+    r"`((?:scripts|config|criteria|agents|hooks|commands|docs|skills|\.github|\.githooks)"
+    r"/[A-Za-z0-9_./-]+)`"
+)
+DOC_FUNC_RE = re.compile(r"`([a-z_]{3,}\(\))`")
+
+
+def check_doc_references() -> None:
+    """Every repo path and function a doc names must exist.
+
+    This is the part of doc accuracy a machine CAN judge. It does not check
+    whether the prose is *right* — only that it does not point at things that
+    are gone, which is how docs rot first and most visibly.
+    """
+    sources = "\n".join(
+        p.read_text(encoding="utf-8", errors="replace")
+        for p in (ROOT / "scripts").glob("*.py")
+    )
+    for doc in sorted((ROOT / "docs").glob("*.md")) + [ROOT / "README.md", ROOT / "adapters" / "README.md"]:
+        if not doc.is_file():
+            continue
+        text = doc.read_text(encoding="utf-8")
+        rel = doc.relative_to(ROOT).as_posix()
+        for path in sorted(set(DOC_PATH_RE.findall(text))):
+            if not (ROOT / path).exists():
+                err(f"{rel}: references missing path '{path}'")
+        for func in sorted(set(DOC_FUNC_RE.findall(text))):
+            if f"def {func[:-2]}(" not in sources:
+                err(f"{rel}: references function '{func}' that no script defines")
+
+
 def main() -> int:
     fix = "--fix" in sys.argv
     no_live = "--no-live" in sys.argv
@@ -309,6 +340,7 @@ def main() -> int:
     check_no_ledgers_in_repo()
     check_criteria(fix)
     check_generated_docs(fix)
+    check_doc_references()
     if no_live:
         print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
     if errors:

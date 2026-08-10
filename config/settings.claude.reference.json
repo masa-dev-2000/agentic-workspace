@@ -1,0 +1,152 @@
+{
+  "$comment": [
+    "Reference snapshot of the Claude Code settings this workspace depends on.",
+    "bootstrap_workspace.py diffs ~/.claude/settings.json against this and prints",
+    "a SETTINGS-DIFF block to paste by hand - protect-files.sh deliberately blocks",
+    "automated edits to the live settings file.",
+    "Only the workspace-relevant blocks are kept: hooks (defense + evidence capture)",
+    "and permissions (the deny list). Personal/UI preferences are intentionally NOT",
+    "mirrored here - they are not part of the harness contract."
+  ],
+  "permissions": {
+    "deny": [
+      "Bash(curl*)",
+      "Bash(wget*)",
+      "Bash(cmd*)",
+      "Bash(powershell -EncodedCommand*)",
+      "Bash(powershell -e *)",
+      "Bash(powershell -ec *)",
+      "Bash(powershell -Command*IEX*)",
+      "Bash(powershell*Invoke-Expression*)",
+      "Bash(powershell*Invoke-WebRequest*)",
+      "Bash(powershell*Start-Process*)",
+      "Bash(powershell*New-Object Net.WebClient*)",
+      "Bash(rm -rf *)",
+      "Bash(rm -rf /)",
+      "Bash(chmod 777 *)",
+      "Bash(git push --force*)",
+      "Bash(git push *--force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fd*)",
+      "Bash(> /dev/null 2>&1 &*)",
+      "Bash(*| bash)",
+      "Bash(*| sh)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(netcat *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(ftp *)",
+      "Bash(telnet *)",
+      "Bash(nslookup *)",
+      "Bash(certutil -urlcache*)",
+      "Bash(bitsadmin*)",
+      "Bash(reg add*)",
+      "Bash(reg delete*)",
+      "Bash(schtasks*)",
+      "Bash(net user*)",
+      "Bash(net localgroup*)",
+      "Bash(icacls*)",
+      "Bash(takeown*)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Read(**/*.keystore)",
+      "Read(**/*.jks)",
+      "Read(**/*credentials*)",
+      "Read(**/*_rsa)",
+      "Read(**/*_ecdsa)",
+      "Read(**/*_ed25519)",
+      "Read(**/.ssh/*)",
+      "Read(**/.gnupg/*)",
+      "Read(**/.aws/credentials)",
+      "Read(**/.azure/*)",
+      "Read(**/.gcloud/*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash C:/Users/masa/.claude/hooks/validate-command.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash C:/Users/masa/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\failure-learning\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\feedback-learning\\scripts\\capture_hook.py\"",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 \"C:\\Users\\masa\\.codex\\skills\\skill-telemetry\\scripts\\capture_hook.py\"",
+            "timeout": 2,
+            "statusMessage": "Saving local Skill telemetry"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash C:/Users/masa/.claude/hooks/audit-config.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
