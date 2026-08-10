@@ -43,7 +43,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>python</Command>
+      <Command>{{PYTHON}}</Command>
       <Arguments>-X utf8 "C:\Users\masa\dev\agentic-workspace\scripts\health_check.py"</Arguments>
       <WorkingDirectory>C:\Users\masa\dev\agentic-workspace</WorkingDirectory>
     </Exec>

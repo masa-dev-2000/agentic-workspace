@@ -21,6 +21,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_adapter  # noqa: E402  (same-dir sibling module)
+
 ROOT = Path(__file__).resolve().parent.parent
 TASK_DIR = ROOT / "scripts" / "scheduled-tasks"
 # Registered by its own installer (skill-telemetry/scripts/configure_hooks.py),
@@ -48,6 +51,15 @@ def pair_tasks() -> list[tuple[str, Path]]:
 def register(name: str, xml: Path) -> int:
     # schtasks rejects UTF-8 XML ("cannot switch encoding"); convert on the fly.
     text = xml.read_text(encoding="utf-8").replace('encoding="UTF-8"', 'encoding="UTF-16"', 1)
+
+    # A scheduler does not inherit the interactive PATH: a bare "python" in the
+    # XML registers fine and then fails at first trigger with 0x80070002. Resolve
+    # an absolute, upgrade-durable interpreter at registration time instead of
+    # baking one machine's path into the repo.
+    if "{{PYTHON}}" in text:
+        python_path, why = platform_adapter.resolve_python()
+        print(f"    interpreter: {python_path}  [{why}]")
+        text = text.replace("{{PYTHON}}", python_path)
     tmp = Path(tempfile.gettempdir()) / f"{name}.utf16.xml"
     tmp.write_text(text, encoding="utf-16")  # utf-16 codec emits the BOM schtasks needs
     try:

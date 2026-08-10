@@ -10,6 +10,37 @@
   exception.
 - Propose unfreezing only after every criterion in the gate file has verified evidence.
 
+# Creating a new Skill
+
+`.system/skill-creator` covers generic authoring craft but knows nothing about this
+workspace's contracts. Apply these on top of it, in order:
+
+1. **Earn the Skill first.** Follow the smallest-intervention order stated below
+   (dictionary → `AGENTS.md` → existing Skill → Skill handoff → Hook → Runtime → new
+   Skill). A single incident never justifies a Skill. State which existing Skill you
+   considered and why it does not fit.
+2. **Check the gate.** `skill-maturity-gate.json` must not be `frozen`.
+3. **Write evals before prose.** At least three scenarios plus a baseline run without
+   the Skill, so there is evidence the Skill changed an outcome.
+4. **Keep the frontmatter portable.** Only `name`, `description`, and optionally
+   `license` / `compatibility` / `metadata` / `allowed-tools`. `name` must equal the
+   directory name; `description` ≤1024 chars, third person, stating what it does, when
+   to use it, and when not to. Vendor-specific fields belong in the adapter layer, never
+   in `SKILL.md` — `scripts/validate_workspace.py` enforces this and fails the push.
+5. **Body under 500 lines.** Overflow goes to `references/`, one level deep, with a table
+   of contents in any reference file over 100 lines. Put deterministic behavior in
+   `scripts/`, not in prose.
+6. **Register it.** Add the entry to `skill-registry.yaml` (capability, nonGoals,
+   triggers positive/negative, authority, completion proof, `maturity`,
+   `contractContentDigest`) and run `python -X utf8 scripts/validate_skill_registry.py`
+   until valid. An unregistered Skill on disk is an error, not a warning.
+7. **Declare its state.** Any path the Skill writes outside its own directory must appear
+   in `config/wiring.json`. Ledgers, databases, and keys never live in the repo — it is
+   public, and `check_no_ledgers_in_repo()` enforces that.
+8. **Disambiguate.** If the description overlaps an existing Skill, add an explicit
+   "Do not use for … (use `<other>` instead)" clause to both — description matching is
+   the only routing signal.
+
 # Canonical Skill registry
 
 - `skill-registry.yaml` is the canonical responsibility, dependency, authority, and completion

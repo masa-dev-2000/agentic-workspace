@@ -362,6 +362,44 @@ def resolve_bash() -> str:
 
 
 # --------------------------------------------------------------------------
+# 3b. INTERPRETER RESOLUTION (for scheduled tasks)
+# --------------------------------------------------------------------------
+
+def resolve_python() -> tuple[str, str]:
+    """Return (absolute interpreter path, why) for use in a scheduled task.
+
+    A scheduler does NOT inherit the interactive PATH, so a bare "python" in a
+    task definition fails with "file not found" at trigger time while the task
+    still registers successfully — the failure only surfaces on the first real
+    run. Always embed an absolute path, and prefer one that survives upgrades:
+
+    1. The Windows launcher (py.exe) — stable across interpreter upgrades.
+    2. uv's version-less alias dir (…/cpython-3.11-windows-…), which uv keeps
+       pointing at the current patch release; the patch-pinned sibling
+       (…-3.11.15-…) breaks on every upgrade.
+    3. The running interpreter, unless it is inside a virtualenv — a venv that
+       belongs to some other project can be deleted without warning.
+    """
+    if _plat() == WINDOWS:
+        launcher = shutil.which("py")
+        if launcher:
+            return launcher, "Windows Python launcher (upgrade-stable)"
+        uv_root = Path.home() / "AppData" / "Roaming" / "uv" / "python"
+        if uv_root.is_dir():
+            # Version-less alias only: e.g. cpython-3.11-windows-x86_64-none.
+            aliases = sorted(
+                d for d in uv_root.iterdir()
+                if d.is_dir() and (d / "python.exe").is_file()
+                and len(d.name.split("-")[1].split(".")) == 2
+            )
+            if aliases:
+                return str(aliases[-1] / "python.exe"), "uv version-less alias (survives patch upgrades)"
+    in_venv = sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+    return sys.executable, ("running interpreter (INSIDE A VENV — may disappear)"
+                            if in_venv else "running interpreter")
+
+
+# --------------------------------------------------------------------------
 # 4. PATHS
 # --------------------------------------------------------------------------
 
