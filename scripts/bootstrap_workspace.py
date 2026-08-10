@@ -15,9 +15,11 @@ from __future__ import annotations
 import filecmp
 import json
 import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_adapter as pa
 
 ROOT = Path(__file__).resolve().parent.parent
 HOME = Path.home()
@@ -57,11 +59,8 @@ def check_entry(entry: dict) -> tuple[str, str]:
         return "MISSING", f"{eid}: ledger missing at {live} (no fix command — ledgers are restored from backup, not repo)"
 
     if kind == "scheduled-task":
-        cmd = (
-            f'schtasks /Create /TN "{entry["name"]}" /SC MINUTE /MO {entry["interval_minutes"]} '
-            f'/TR "<task command>" /F'
-        )
-        return "OK", f"{eid}: scheduled-task (verify manually via Task Scheduler); recreate with: {cmd}"
+        cmd = pa.describe_register_command(entry["name"])
+        return "OK", f"{eid}: scheduled-task (verify manually); recreate with: {cmd}"
 
     if kind == "copy":
         repo = expand(entry["repo"])
@@ -84,22 +83,16 @@ def check_entry(entry: dict) -> tuple[str, str]:
     live = expand(entry["live"])
     target = resolved_target(entry)
     if not live.exists():
-        if kind == "junction":
-            fix = f'cmd /c mklink /J "{live}" "{target}"'
-        else:
-            fix = f'cmd /c mklink /D "{live}" "{target}"'
+        fix = pa.describe_link_command(live, target, kind)
         return "MISSING", f"{eid}: live path missing: {live} -- fix (run elevated if it fails): {fix}"
     try:
-        resolved = live.resolve()
+        resolved = pa.read_link_target(live)
         expected = target.resolve() if target.exists() else target
     except OSError as e:
         return "WRONG-TARGET", f"{eid}: could not resolve {live}: {e}"
     if resolved == expected:
         return "OK", f"{eid}: {live} -> {resolved}"
-    if kind == "junction":
-        fix = f'cmd /c rmdir "{live}" && cmd /c mklink /J "{live}" "{target}"'
-    else:
-        fix = f'cmd /c del "{live}" && cmd /c mklink /D "{live}" "{target}"'
+    fix = pa.describe_remove_and_relink_command(live, target, kind)
     return "WRONG-TARGET", f"{eid}: {live} resolves to {resolved}, expected {expected} -- fix (run elevated if it fails): {fix}"
 
 
@@ -121,10 +114,7 @@ def do_apply() -> int:
         status, _ = check_entry(entry)
 
         if kind == "scheduled-task":
-            cmd = (
-                f'schtasks /Create /TN "{entry["name"]}" /SC MINUTE /MO {entry["interval_minutes"]} '
-                f'/TR "<task command>" /F'
-            )
+            cmd = pa.describe_register_command(entry["name"])
             print(f"PRINT-ONLY: {eid}: would run: {cmd}")
             continue
 
@@ -167,18 +157,15 @@ def do_apply() -> int:
                 print(f"SKIP: {eid}: {live} exists but is WRONG-TARGET; remove it manually first, then rerun --apply")
                 bad += 1
                 continue
-            flag = "/J" if kind == "junction" else "/D"
-            result = subprocess.run(
-                ["cmd", "/c", "mklink", flag, str(live), str(target)],
-                capture_output=True, text=True,
-            )
-            if result.returncode == 0:
-                print(f"APPLIED: {eid}: created {kind} {live} -> {target}")
+            ok, msg = pa.create_link(live, target, kind)
+            if ok:
+                print(f"APPLIED: {eid}: {msg}")
             else:
+                fix = pa.describe_link_command(live, target, kind)
                 print(
-                    f"FAILED: {eid}: mklink failed ({result.returncode}): {result.stderr.strip() or result.stdout.strip()}\n"
-                    f"  Try running this shell elevated (Administrator), then rerun --apply, or run manually:\n"
-                    f'  cmd /c mklink {flag} "{live}" "{target}"'
+                    f"FAILED: {eid}: link creation failed: {msg}\n"
+                    f"  Try running this shell elevated (Administrator on Windows), then rerun --apply, or run manually:\n"
+                    f"  {fix}"
                 )
                 bad += 1
             continue

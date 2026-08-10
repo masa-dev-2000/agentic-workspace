@@ -59,9 +59,39 @@ A JSON object with a single key:
   Only `live` is set; no `repo`. These are checked for existence only, and
   the repo-leak guard (`check_no_ledgers_in_repo`) ensures ledger file types
   never end up inside the repo tree.
-- **`scheduled-task`** — a Windows Scheduled Task that is not a filesystem
+- **`scheduled-task`** — a recurring OS scheduler entry, not a filesystem
   path at all; recorded so bootstrap can print (never execute) the
-  `schtasks /Create` command to reproduce it.
+  reproduction command. The definition (`name`, `interval_minutes`,
+  `description`) is single-source here regardless of platform; the concrete
+  mechanism differs (see "Other platforms" below) and is generated from this
+  same entry by `scripts/platform_adapter.py`, never hand-duplicated.
+
+### `kind` semantics per platform
+
+`junction` and `symlink` are two distinct wiring kinds on Windows (a
+directory junction vs. a directory symlink — different `mklink` flags,
+different privilege requirements). **On macOS and Linux both collapse to a
+single mechanism: a plain `os.symlink`.** There is no POSIX junction
+concept, so a POSIX `kind: junction` entry is *not* an error or a new kind —
+it is created and resolved exactly like a `kind: symlink` entry by
+`scripts/platform_adapter.py`. Do not invent a POSIX-only kind for this;
+the existing `junction`/`symlink` distinction stays meaningful only on
+Windows, and the registry does not need per-platform kind values because
+`platform_adapter.py` is the single place that maps kind→mechanism per OS.
+
+For `scheduled-task`, the definition in `config/wiring.json` is the same
+across platforms; only the underlying mechanism differs:
+
+| Platform | Mechanism | Registered by |
+|---|---|---|
+| Windows | Task Scheduler (XML under `scripts/scheduled-tasks/*.xml` + `schtasks`) | `scripts/register_tasks.py` |
+| macOS | launchd (`~/Library/LaunchAgents/*.plist` + `launchctl`) | `scripts/platform_adapter.py: register_task()` |
+| Linux | systemd --user (`~/.config/systemd/user/*.{service,timer}` + `systemctl --user`); falls back to a documented `crontab` line if systemd is unavailable — the fallback is stated, never silently skipped | `scripts/platform_adapter.py: register_task()` |
+
+The Windows path keeps its own XML files because they carry richer settings
+(principal, run-level, idle policy) than the generic macOS/Linux path
+expresses; macOS/Linux units are generated at registration time into the
+user's own config directory, never written into the repo.
 - **`unmanaged`** — anything intentionally out of scope for wiring/drift
   checks. Requires a `reason` field explaining why. No `repo`/`live`
   enforcement is performed.

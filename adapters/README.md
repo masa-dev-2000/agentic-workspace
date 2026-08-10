@@ -42,6 +42,19 @@ and Gemini CLI). All paths above resolve to the single `skills/` tree in this re
   spec's `metadata` map.
 - One canonical content tree; adapters may only link, generate, or copy-with-drift-check.
 
+## The OS is another adapter axis
+
+The vendor axis above (Claude Code / Codex CLI / Gemini CLI) is not the only
+place this repo adapts to its environment: the operational scripts
+(`bootstrap_workspace.py`, `register_tasks.py`, `health_check.py`,
+`backup_ledgers.py`) also run on Windows, macOS, or Linux, and every
+difference between those three (link mechanism, scheduler, shell, default
+paths) is isolated the same way vendor differences are — one thin adapter
+module, `scripts/platform_adapter.py`, that the portable script logic calls
+into rather than branching on `sys.platform` itself. See
+`config/wiring.schema.md` ("kind semantics per platform") and
+`docs/OPERATIONS.md` ("Other platforms") for what it covers.
+
 ## Distribution
 
 When distributing this workspace (or a subset) to other machines, people, or teams, package it in the Agent Plugins 1.0 format (agent-plugins.org): `plugin.json` manifest + `skills/` (already spec-compliant) + `mcp.json`. Do not adopt it for local wiring — junctions already serve that purpose.
