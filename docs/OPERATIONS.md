@@ -120,6 +120,21 @@ junction/symlink live-resolution check against this machine's real
 meaningful "this machine" context to check against (CI, or a worktree whose
 junctions necessarily point elsewhere).
 
+### Other platforms
+
+All OS differences (link creation/resolution, scheduler registration/query,
+shell resolution, default backup/health paths) live in exactly one place:
+`scripts/platform_adapter.py`. No other script branches on `sys.platform`.
+On macOS/Linux, `junction` and `symlink` wiring entries both resolve to a
+plain `os.symlink` (see `config/wiring.schema.md`'s "kind semantics per
+platform"); `bootstrap_workspace.py --check`/`--apply` and
+`validate_workspace.py` behave identically to the Windows flow described
+above — same OK/MISSING/WRONG-TARGET states, same "repo is canonical" rule —
+just backed by `ln -s` instead of `mklink`. `scheduled-task` entries recreate
+as a launchd agent on macOS or a systemd --user timer on Linux (crontab-line
+fallback if systemd --user is unavailable) instead of a Task Scheduler XML
+import; see `config/wiring.schema.md` for the mechanism table.
+
 ## 3. The pipeline
 
 Four agents plus two governance loops, defined in `agents/claude/*.md`
@@ -225,6 +240,18 @@ itself (that's the Scheduled Task's job). Its steps, in fixed order:
    the `validator-signal-hygiene` warn channel — do not "fix" this to
    run weekly).
 
+### Other platforms
+
+The Daily and Weekly rows above are unattended OS-scheduler jobs; the
+mechanism is per-platform (Task Scheduler / launchd / systemd --user, see
+`config/wiring.schema.md`) but the cadence, the scripts invoked
+(`backup_ledgers.py`, `health_check.py`), and their pass/fail contract are
+identical everywhere — `health_check.py`'s SCHEDULED TASKS section queries
+whichever mechanism is live via `platform_adapter.query_task()` and reports
+`PASS`/`FAIL`/`UNVERIFIED` the same way regardless of OS. `/weekly-ops` and
+the LLM-judgment steps are unaffected by platform entirely (they invoke `gh`
+and Claude Code agents, not OS schedulers).
+
 ## 5. Recovery runbooks
 
 Each ends in a command whose actual output is shown; use it to confirm the
@@ -232,30 +259,43 @@ runbook worked.
 
 ### (a) New machine
 
+This runbook is the same on Windows, macOS, and Linux — the only things that
+differ are the mechanism `platform_adapter.py` picks (see §2 "Other
+platforms") and the paths it defaults to (`%USERPROFILE%` on Windows,
+`$HOME` on macOS/Linux via `pathlib.Path.home()`).
+
 1. `git clone <repo-url>` to the intended location (the wiring registry
    assumes a specific path per entry's `live` side is relative to `~`, but
    the `repo` side is wherever you cloned to).
 2. `python -X utf8 scripts/bootstrap_workspace.py --apply` — creates missing
-   junctions/symlinks, syncs `copy` entries repo→live. It never touches
-   `~/.claude/settings.json` directly; instead it diffs against
-   `config/settings.claude.reference.json` and prints a `SETTINGS-DIFF`
-   block for you to paste in by hand (confirmed by reading
+   junctions/symlinks (`ln -s` on macOS/Linux, `mklink` on Windows — both via
+   `platform_adapter.create_link()`), syncs `copy` entries repo→live. It
+   never touches `~/.claude/settings.json` directly; instead it diffs
+   against `config/settings.claude.reference.json` and prints a
+   `SETTINGS-DIFF` block for you to paste in by hand (confirmed by reading
    `bootstrap_workspace.py:186-200`).
 3. Paste the printed settings fragment into `~/.claude/settings.json`
    yourself.
-4. Register the three Scheduled Tasks. **This step is unverified in this
-   session — `schtasks /Create` was not run** (registering tasks is a
-   machine-mutating action outside this doc's scope). The exact
-   reproduction command for each is printed by
-   `bootstrap_workspace.py --check` for every `scheduled-task` entry (e.g.
-   `schtasks /Create /TN "agentic-ledger-backup" /SC MINUTE /MO 1440 /TR "<task command>" /F` —
-   note `<task command>` is a placeholder; use the real `<Command>`/
-   `<Arguments>` from the matching XML under `scripts/scheduled-tasks/*.xml`,
-   which is what Task Scheduler's Import Task feature reads directly — that
-   is the actually-supported path, not hand-building the `schtasks` string).
+4. Register the scheduled tasks. **This step is unverified in this
+   session — no scheduler mutation was run on any platform** (registering
+   tasks is a machine-mutating action outside this doc's scope). The exact
+   reproduction command for each is printed by `bootstrap_workspace.py
+   --check` for every `scheduled-task` entry, via
+   `platform_adapter.describe_register_command()`:
+   - **Windows**: points at `scripts/register_tasks.py`, which imports the
+     matching XML under `scripts/scheduled-tasks/*.xml` — that is the
+     actually-supported path, not hand-building a `schtasks` string.
+   - **macOS**: `launchctl load -w ~/Library/LaunchAgents/com.agentic-workspace.<name>.plist`
+     — the plist itself is generated at registration time by
+     `platform_adapter.register_task()`, never checked into the repo.
+   - **Linux**: `systemctl --user enable --now <name>.timer` if systemd
+     --user is available; otherwise the printed command is a `crontab -e`
+     line instead — stated explicitly, never a silent no-op.
 5. Verify: `python -X utf8 scripts/health_check.py` — writes
-   `%USERPROFILE%\.claude\health\latest.md` and appends to `history.jsonl`,
-   printing `HEALTH OK` or `HEALTH FAIL (n)` plus a per-section breakdown.
+   `<health-dir>/latest.md` and appends to `history.jsonl`
+   (`%USERPROFILE%\.claude\health` on Windows, `~/.claude/health` on
+   macOS/Linux, both via `platform_adapter.health_dir()`), printing
+   `HEALTH OK` or `HEALTH FAIL (n)` plus a per-section breakdown.
 
 ### (b) Ledger corruption
 

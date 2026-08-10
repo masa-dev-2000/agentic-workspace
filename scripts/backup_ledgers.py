@@ -27,6 +27,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_adapter as pa
+
 TOOL_VERSION = "1.0.0"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -124,7 +127,7 @@ def find_git_ancestor(path: Path) -> Path | None:
 
 
 def default_backup_root() -> Path:
-    return HOME / "backups" / "agentic-workspace-ledgers"
+    return pa.default_backup_root()
 
 
 def resolve_destination() -> Path:

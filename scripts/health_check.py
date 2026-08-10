@@ -27,13 +27,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_adapter as pa
+
 ROOT = Path(__file__).resolve().parent.parent
 HOME = Path.home()
 
-BACKUP_ROOT_DEFAULT = HOME / "backups" / "agentic-workspace-ledgers"
+BACKUP_ROOT_DEFAULT = pa.default_backup_root()
 BACKUP_MAX_AGE_DAYS = 8
 
-HEALTH_DIR = HOME / ".claude" / "health"
+HEALTH_DIR = pa.health_dir()
 LATEST_MD = HEALTH_DIR / "latest.md"
 HISTORY_JSONL = HEALTH_DIR / "history.jsonl"
 
@@ -82,29 +85,7 @@ HOOK_PROBES: dict[str, list[tuple[str, dict, int, str]]] = {
 }
 
 
-def _find_bash() -> str:
-    """Resolve a real Git Bash executable, not the WSL launcher stub that
-    Windows also registers as bash.exe on PATH (which cannot run these
-    scripts and silently misbehaves)."""
-    import shutil
-
-    candidates = [
-        r"C:\Program Files\Git\bin\bash.exe",
-        r"C:\Program Files\Git\usr\bin\bash.exe",
-    ]
-    for c in candidates:
-        if Path(c).is_file():
-            return c
-    found = shutil.which("bash")
-    # A probe that silently falls back to the WSL stub would execute nothing and
-    # report every hook as passing — the exact fail-open this script exists to
-    # detect. Refuse to guess: return "" so the caller fails loudly instead.
-    if found and "windows\\system32" not in found.lower():
-        return found
-    return ""
-
-
-_BASH = _find_bash()
+_BASH = pa.resolve_bash()
 
 
 def run_hook(hook_path: Path, stdin_json: dict) -> tuple[int, str, str]:
@@ -219,47 +200,34 @@ def check_scheduled_tasks() -> tuple[bool | None, list[str]]:
     if not tasks:
         return True, ["PASS: no scheduled-task entries declared"]
 
+    # Windows' "Last Run Time" format from schtasks; other platforms' query
+    # mechanisms use their own timestamp shapes (or report "unverified"
+    # outright, e.g. launchd has no last-run timestamp via `list`) and are
+    # not accuracy-checked against interval here — only last_result is.
+    WINDOWS_LAST_RUN_FORMAT = "%m/%d/%Y %I:%M:%S %p"
+
     lines: list[str] = []
     any_unverified = False
     ok = True
     for entry in tasks:
         name = entry["name"]
         interval = entry.get("interval_minutes")
-        try:
-            raw = subprocess.run(
-                ["schtasks", "/Query", "/TN", name, "/FO", "LIST", "/V"],
-                capture_output=True, timeout=15,
-            )
-            proc = subprocess.CompletedProcess(
-                raw.args,
-                raw.returncode,
-                raw.stdout.decode("cp932", errors="replace") if raw.stdout else "",
-                raw.stderr.decode("cp932", errors="replace") if raw.stderr else "",
-            )
-        except (FileNotFoundError, PermissionError, OSError) as e:
+        q = pa.query_task(name)
+
+        if q["exists"] is None:
             any_unverified = True
-            lines.append(f"UNVERIFIED: {name}: could not run schtasks ({e})")
+            lines.append(f"UNVERIFIED: {name}: could not query task ({q.get('error', 'unknown')})")
+            continue
+        if q["exists"] is False:
+            any_unverified = True
+            lines.append(f"UNVERIFIED: {name}: task not found ({q.get('error', 'unknown')})")
             continue
 
-        if proc.returncode != 0:
+        last_result = q["last_result"]
+        last_run = q["last_run"]
+        if last_result is None:
             any_unverified = True
-            lines.append(
-                f"UNVERIFIED: {name}: schtasks /Query failed (exit {proc.returncode}): "
-                f"{proc.stderr.strip() or proc.stdout.strip()}"
-            )
-            continue
-
-        last_result = None
-        last_run = None
-        for line in proc.stdout.splitlines():
-            if line.strip().lower().startswith("last result:"):
-                last_result = line.split(":", 1)[1].strip()
-            elif line.strip().lower().startswith("last run time:"):
-                last_run = line.split(":", 1)[1].strip()
-
-        if last_result is None or last_run is None:
-            any_unverified = True
-            lines.append(f"UNVERIFIED: {name}: could not parse Last Result / Last Run Time from schtasks output")
+            lines.append(f"UNVERIFIED: {name}: could not determine Last Result")
             continue
 
         entry_ok = True
@@ -267,20 +235,24 @@ def check_scheduled_tasks() -> tuple[bool | None, list[str]]:
             entry_ok = False
             lines.append(f"FAIL: {name}: Last Result = {last_result} (nonzero)")
 
-        try:
-            last_run_dt = datetime.strptime(last_run, "%m/%d/%Y %I:%M:%S %p")
-            age_minutes = (datetime.now() - last_run_dt).total_seconds() / 60
-            max_age = 2 * interval if interval else None
-            if max_age is not None and age_minutes > max_age:
-                entry_ok = False
-                lines.append(
-                    f"FAIL: {name}: last run {age_minutes:.0f} min ago "
-                    f"(> 2x declared interval of {interval} min)"
-                )
-        except ValueError:
+        if last_run == "unverified":
             any_unverified = True
-            lines.append(f"UNVERIFIED: {name}: could not parse Last Run Time '{last_run}'")
-            continue
+            lines.append(f"UNVERIFIED: {name}: Last Run Time not available from this platform's query mechanism")
+        else:
+            try:
+                last_run_dt = datetime.strptime(last_run, WINDOWS_LAST_RUN_FORMAT)
+                age_minutes = (datetime.now() - last_run_dt).total_seconds() / 60
+                max_age = 2 * interval if interval else None
+                if max_age is not None and age_minutes > max_age:
+                    entry_ok = False
+                    lines.append(
+                        f"FAIL: {name}: last run {age_minutes:.0f} min ago "
+                        f"(> 2x declared interval of {interval} min)"
+                    )
+            except ValueError:
+                any_unverified = True
+                lines.append(f"UNVERIFIED: {name}: could not parse Last Run Time '{last_run}'")
+                continue
 
         if entry_ok:
             lines.append(f"PASS: {name}: Last Result={last_result}, Last Run Time={last_run}")
