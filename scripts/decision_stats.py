@@ -59,7 +59,13 @@ def main() -> int:
               "decision-recording contract (criterion: decision-risk-levels).")
         return 0
 
-    pending = [d for d in decisions if d.get("review", "pending") == "pending"]
+    # A reviewer writes "agree" or "disagree: <correct answer>" plus free notes;
+    # judge on the leading verdict word, not the whole line.
+    for d in decisions:
+        verdict = re.split(r"[\s:—-]", d.get("review", "pending").strip(), 1)[0].lower()
+        d["verdict"] = verdict if verdict in ("agree", "disagree") else "pending"
+
+    pending = [d for d in decisions if d["verdict"] == "pending"]
     if "--pending" in sys.argv:
         print(f"UNREVIEWED DECISIONS ({len(pending)})")
         # Low confidence first: reviewing those is what keeps review affordable.
@@ -76,8 +82,8 @@ def main() -> int:
 
     print(f"{'class':<22}{'risk':<6}{'reviewed':<10}{'agree':<8}{'rate':<8}action")
     for cls, items in sorted(by_class.items()):
-        reviewed = [d for d in items if d.get("review") in ("agree", "disagree")]
-        agree = sum(1 for d in reviewed if d["review"] == "agree")
+        reviewed = [d for d in items if d["verdict"] in ("agree", "disagree")]
+        agree = sum(1 for d in reviewed if d["verdict"] == "agree")
         rate = agree / len(reviewed) if reviewed else None
         risk = items[-1].get("risk", "?")
         if rate is None:
