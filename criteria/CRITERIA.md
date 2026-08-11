@@ -1,6 +1,6 @@
 # Criteria Index
 
-- `data-locality` [proposed] Project-specific data is written inside the project it belongs to, and only cross-project assets live in the shared workspace, which is public.
+- `data-locality` [active] Project-specific data is written inside the project it belongs to, and only cross-project assets live in the shared workspace, which is public.
 - `decision-risk-levels` [active] An automated decision may run unattended only at the risk level its recorded human-review agreement rate supports, and every automated decision must record its basis and confidence so that agreement can be measured at all.
 - `drift-coverage-completeness` [active] Every synced directory and every path referenced from outside the workspace must be covered by the drift validator, with no hardcoded allowlists that silently exclude new entries.
 - `ledger-schema-before-use` [active] Any machine-consumed ledger or contract directory must have a documented schema and a validator before its first entry is written.

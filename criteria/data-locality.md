@@ -1,7 +1,7 @@
 ---
 id: data-locality
 statement: Project-specific data is written inside the project it belongs to, and only cross-project assets live in the shared workspace, which is public.
-status: proposed
+status: active
 version: 1
 ---
 
@@ -66,3 +66,4 @@ project tomorrow, does this path still name the right place?**
 ## Status History
 
 - 2026-08-11: drafted as proposed.
+- 2026-08-11: activated. Approval: actor=github:masa-dev-2000 channel=claude-code-session date=2026-08-11 ref="承認"

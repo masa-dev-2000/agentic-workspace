@@ -78,6 +78,26 @@ Require either explicit persistence or two independent supporting sessions withi
 before proposing. Treat one high-severity signal as review-eligible only. Never call a
 single event validated. Review support, counter, boundary, scope, and privacy together.
 
+### expectation-gap signals
+
+`feedback_type = expectation-gap` marks a moment where the user's model of the system and
+its actual state diverged — "why wasn't this considered", "isn't it working yet",
+"I don't follow this". Read these before complaints: a complaint says something is
+unpleasant, a gap says exactly *where* the system, or the explanation of it, stopped
+matching what the user expected. The second is the more actionable.
+
+Each gap resolves into one of three, and the fix differs:
+
+1. **The design really was wrong** → route it through the countermeasure type in
+   `RULEBOOK.md`; a doc change alone would leave the defect in place.
+2. **The design was right but unexplained** → fix the explanation at its source (skill
+   prose, doc, report format), not by re-explaining in conversation.
+3. **The user's model was simply outdated** → nothing to fix; record it so that a repeat
+   becomes visible.
+
+A recurring gap of type 1 or 2 is the strongest promotion evidence this ledger holds: it
+names a specific divergence rather than a general dissatisfaction.
+
 ## Stage the smallest intervention
 
 Route in this order:

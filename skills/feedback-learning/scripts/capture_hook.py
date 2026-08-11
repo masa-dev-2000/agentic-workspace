@@ -57,6 +57,22 @@ PATTERNS = {
         r"keep track of",
         r"I want (?:a|this)",
     ],
+    # A "why is it like this / why isn't it yet" question is evidence that the
+    # user's model of the system and its actual state have diverged. That gap is
+    # worth more than a complaint: it names a specific place where either the
+    # design or the explanation of it failed to match expectation. Kept narrow —
+    # a bare "why" also appears in ordinary curiosity, so these require the shape
+    # that points at something missing, late, or surprising.
+    "expectation-gap": [
+        r"(?:なぜ|どうして|なんで|何で).{0,40}(?:ない|なかった|なってない)",
+        # "まだ〜なってないの？" is a gap; "まだ〜しないで" is an instruction.
+        # Require the interrogative tail so a directive never counts as a gap.
+        r"(?:まだ|もう).{0,25}(?:なってない|できてない|してない|ない)(?:の|のか|\?|？)",
+        r"(?:わかんない|分かんない|わからない|意味不明|理解できない)",
+        r"(?:はず|想定|思ってた).{0,15}(?:だけど|なのに|と違)",
+        r"why (?:is|isn't|didn't|wasn't|aren't)\b",
+        r"I (?:thought|expected)\b",
+    ],
 }
 
 SUBJECT_PATTERNS = [
