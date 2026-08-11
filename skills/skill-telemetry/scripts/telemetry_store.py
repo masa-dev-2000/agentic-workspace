@@ -16,8 +16,8 @@ from typing import Any, Callable, Iterable
 
 import yaml
 
-SCHEMA_VERSION = 7
-SPOOL_SCHEMA_VERSION = 2
+SCHEMA_VERSION = 8
+SPOOL_SCHEMA_VERSION = 3
 COMPONENT_VERSION = "1.9.0"
 PRIVACY_REPAIR_VERSION = "3"
 PRIVACY_REPAIR_PENDING = "pending-v3"
@@ -41,6 +41,20 @@ COMPLETION_EVIDENCE_CLASSES = {
     "browser-qa",
 }
 HOOK_SOURCE_CLASSES = {"custom", "plugin", "system", "external"}
+# Skill *invocation* vs. Skill.md *read* are different tools on some hosts
+# (Claude Code: Skill tool vs. Read tool) and the same tool on others (Codex:
+# opening SKILL.md IS how a skill is invoked). The classification below is
+# decided purely by tool_name, never by guessing which host is running:
+#   - tool_name == "Skill"   -> "invocation" (the tool's own argument names
+#                                the skill directly; see skill_identities()).
+#   - any other tool_name    -> "read" (a SKILL.md path was merely seen in
+#                                that tool's input; on Codex this coincides
+#                                with invocation, but the class name records
+#                                only the detection method, not an inferred
+#                                intent, so downstream consumers can choose
+#                                how to weight it per host).
+SKILL_DETECTION_CLASSES = {"invocation", "read"}
+PERSISTED_SKILL_DETECTION_CLASSES = SKILL_DETECTION_CLASSES | {"legacy-unknown"}
 HOOK_FEELING_CLASSES = {
     "explicit-approval",
     "explicit-complaint-or-correction",
@@ -115,8 +129,8 @@ OPAQUE_REFERENCE_RE = re.compile(
 LEGACY_RUBRIC_RE = re.compile(r"legacy-[0-9a-f]{32}")
 RUN_ID_RE = re.compile(r"skillrun_[0-9a-f]{32}")
 HEALTH_DETAIL_RE = re.compile(
-    r"(?:spool-v2;stable-secret-unavailable|"
-    r"spool-v2;skills:(?:[0-9]|1[0-9]|20);evidence:[01]|legacy-redacted)"
+    r"(?:spool-v3;stable-secret-unavailable|"
+    r"spool-v3;skills:(?:[0-9]|1[0-9]|20);evidence:[01]|legacy-redacted)"
 )
 LEGACY_TIMESTAMP = "1970-01-01T00:00:00+00:00"
 TIME_META_KEYS = {
@@ -1730,6 +1744,7 @@ class TelemetryStore:
                 and "provenance_trust" in run_columns
                 and "end_reason" in run_columns
                 and "duration_quality" in run_columns
+                and "detection_class" in run_columns
                 and "provenance_trust" in evidence_columns
                 and "idx_runs_session_time" in indexes
             )
@@ -1819,7 +1834,8 @@ class TelemetryStore:
                       tool_failure_count INTEGER NOT NULL DEFAULT 0,
                       provenance_trust TEXT NOT NULL DEFAULT 'legacy-unverified',
                       end_reason TEXT NOT NULL DEFAULT 'legacy-unknown',
-                      duration_quality TEXT NOT NULL DEFAULT 'unknown'
+                      duration_quality TEXT NOT NULL DEFAULT 'unknown',
+                      detection_class TEXT NOT NULL DEFAULT 'legacy-unknown'
                     );
                     CREATE INDEX IF NOT EXISTS idx_runs_session_turn
                       ON skill_runs(session_hash,turn_hash,status);
@@ -1958,6 +1974,15 @@ class TelemetryStore:
                         "TEXT NOT NULL DEFAULT 'unknown'"
                     )
                     lifecycle_columns_added = True
+                if "detection_class" not in run_columns:
+                    # Pre-fix rows cannot be retroactively told apart into
+                    # invocation vs. read (that is the bug being fixed), so
+                    # they stay labeled 'legacy-unknown' rather than being
+                    # silently reclassified as either.
+                    db.execute(
+                        "ALTER TABLE skill_runs ADD COLUMN detection_class "
+                        "TEXT NOT NULL DEFAULT 'legacy-unknown'"
+                    )
                 evidence_columns = {
                     row[1]
                     for row in db.execute(
@@ -2211,9 +2236,83 @@ class TelemetryStore:
         fingerprint = hashlib.sha256(resolved.read_bytes()).hexdigest()
         return (*identity, fingerprint)
 
-    def skill_identities(
+    @classmethod
+    def _skill_source_candidates_for_name(
+        cls,
+        name: str,
+        local_sources: dict[str, tuple[str, str, str, str]],
+    ) -> list[Path]:
+        """Build candidate SKILL.md paths for a Skill-tool invocation name.
+
+        Mirrors the same authorized roots `_identity` already checks (local
+        registry, system, agents, plugin cache) but resolves from a bare or
+        plugin-qualified skill *name* instead of a path found in tool_input.
+        """
+        skills_root = Path(__file__).resolve().parents[2]
+        system_root = (skills_root / ".system").resolve()
+        agents_root = (Path.home() / ".agents" / "skills").resolve()
+        if ":" in name:
+            plugin_name, _, skill_name = name.partition(":")
+        else:
+            plugin_name, skill_name = None, name
+        skill_name = skill_name.lower()
+        if not skill_name or not HOOK_IDENTITY_RE.fullmatch(skill_name):
+            return []
+        candidates: list[Path] = [
+            Path(path_str)
+            for path_str, identity in local_sources.items()
+            if identity[1] == skill_name
+        ]
+        candidates.append(system_root / skill_name / "SKILL.md")
+        candidates.append(agents_root / skill_name / "SKILL.md")
+        if plugin_name:
+            cache_root = (cls._plugins_root() / "cache").resolve()
+            try:
+                candidates.extend(
+                    cache_root.glob(
+                        f"*/{plugin_name}/*/skills/{skill_name}/SKILL.md"
+                    )
+                )
+            except OSError:
+                pass
+        return candidates
+
+    def _skill_identities_from_invocation(
         self, tool_input: Any
     ) -> list[tuple[Path, tuple[str, str, str, str, str]]]:
+        """Resolve the skill named by a Skill-tool call's own argument.
+
+        The Skill tool's JSONSchema names its skill argument `skill` (see the
+        tool definition: `{"skill": {...}, "args": {...}}`, required=["skill"]);
+        that is the ground truth used here rather than any path heuristic.
+        """
+        if not isinstance(tool_input, dict):
+            return []
+        name = tool_input.get("skill")
+        if not isinstance(name, str) or not name:
+            return []
+        local_sources = self._canonical_local_sources()
+        for candidate in self._skill_source_candidates_for_name(
+            name, local_sources
+        ):
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                continue
+            if not resolved.is_file() or resolved.name.lower() != "skill.md":
+                continue
+            try:
+                identity = self._identity(resolved, local_sources=local_sources)
+            except (OSError, ValueError):
+                continue
+            return [(resolved, identity)]
+        return []
+
+    def skill_identities(
+        self, tool_input: Any, *, tool_name: str | None = None
+    ) -> list[tuple[Path, tuple[str, str, str, str, str]]]:
+        if tool_name == "Skill":
+            return self._skill_identities_from_invocation(tool_input)
         candidates: dict[str, Path] = {}
         raw_seen: set[str] = set()
         pattern = re.compile(
@@ -2309,9 +2408,16 @@ class TelemetryStore:
             )
         )
         if hook == "PostToolUse":
+            tool_name = payload.get("tool_name")
+            tool_name_str = tool_name if isinstance(tool_name, str) else None
+            # See the SKILL_DETECTION_CLASSES comment: classified by tool_name
+            # alone, never by platform guessing.
+            detection_class = (
+                "invocation" if tool_name_str == "Skill" else "read"
+            )
             identities = []
             for _, identity in self.skill_identities(
-                payload.get("tool_input")
+                payload.get("tool_input"), tool_name=tool_name_str
             )[:20]:
                 skill_key, name, provider, source_class, fingerprint = (
                     identity
@@ -2323,6 +2429,7 @@ class TelemetryStore:
                         "provider": provider,
                         "source_class": source_class,
                         "skill_fingerprint": fingerprint,
+                        "detection_class": detection_class,
                     }
                 )
             record["skills"] = identities
@@ -2462,6 +2569,7 @@ class TelemetryStore:
                 "provider",
                 "source_class",
                 "skill_fingerprint",
+                "detection_class",
             }:
                 raise ValueError("invalid skill identity")
             for key, limit in (
@@ -2481,6 +2589,11 @@ class TelemetryStore:
                 raise ValueError("invalid skill source class")
             if not self._valid_hash(skill.get("skill_fingerprint")):
                 raise ValueError("invalid skill fingerprint")
+            # Freshly spooled events always carry a live detection class;
+            # "legacy-unknown" is reserved for pre-fix DB rows only (see
+            # PERSISTED_SKILL_DETECTION_CLASSES) and must never appear here.
+            if skill.get("detection_class") not in SKILL_DETECTION_CLASSES:
+                raise ValueError("invalid skill detection class")
         evidence = record.get("evidence")
         if evidence is not None:
             if (
@@ -3003,6 +3116,9 @@ class TelemetryStore:
                         skill.get("source_class"),
                     )
                 )
+                detection_class = skill.get("detection_class")
+                if detection_class not in SKILL_DETECTION_CLASSES:
+                    raise ValueError("invalid skill detection class")
                 idem = hashlib.sha256(
                     f"{session}|{turn}|{skill_key}|{fingerprint}".encode()
                 ).hexdigest()
@@ -3011,8 +3127,8 @@ class TelemetryStore:
                        (run_id,idempotency_key,skill_key,skill_name,provider,source_class,
                         skill_fingerprint,session_hash,turn_hash,repo_hash,model_class,
                         detection,status,started_at,ended_at,duration_ms,
-                        provenance_trust,end_reason,duration_quality)
-                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        provenance_trust,end_reason,duration_quality,detection_class)
+                       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         "skillrun_" + uuid.uuid4().hex,
                         idem,
@@ -3033,6 +3149,7 @@ class TelemetryStore:
                         TRUSTED_PROVENANCE,
                         terminal_reason,
                         terminal_quality,
+                        detection_class,
                     ),
                 )
             evidence = record.get("evidence")

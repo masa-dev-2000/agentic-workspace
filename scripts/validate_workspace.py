@@ -17,13 +17,22 @@ Checks (exit 1 on any failure):
 5. Leaked ledgers: no *.sqlite3*, *.db*, or *.key files anywhere in the repo
    (this repo is public).
 
-Run: python -X utf8 scripts/validate_workspace.py [--fix] [--no-live]
+Run: python -X utf8 scripts/validate_workspace.py [--fix] [--no-live|--no-drift]
 
---no-live skips the live-filesystem checks (drift + wiring liveness) that
-require this machine's actual home directory (~/.claude, ~/.codex, etc.) to
-exist. A CI runner has no such filesystem, so those checks would fail
-spuriously there. --no-live still runs agents/skills/criteria/leak checks and
-prints which check groups were skipped.
+--no-live skips the live-filesystem checks (drift, wiring liveness, RULEBOOK
+enforcement) that require this machine's actual home directory (~/.claude,
+~/.codex, the RULEBOOK under ~/dev, etc.) to exist. A CI runner has no such
+filesystem, so those checks would fail spuriously there.
+
+--no-drift skips only drift + wiring liveness, i.e. the checks that compare the
+repo against the ~/.codex, ~/.claude, ~/.agents junctions. Those junctions
+point at the main checkout, so from a linked git worktree they compare
+unrelated trees; RULEBOOK enforcement compares the RULEBOOK against *this*
+tree and stays meaningful there, so a worktree must not lose it. Used by
+.githooks/pre-push (issue #25).
+
+Either flag still runs agents/skills/criteria/leak checks and prints which
+check groups were skipped.
 """
 from __future__ import annotations
 
@@ -555,11 +564,13 @@ def check_rulebook_enforcement() -> None:
 def main() -> int:
     fix = "--fix" in sys.argv
     no_live = "--no-live" in sys.argv
+    no_drift = "--no-drift" in sys.argv
+    skip_junction_checks = no_live or no_drift
     check_agents()
     check_skills()
     check_skill_composition()
-    check_wiring(no_live=no_live)
-    if not no_live:
+    check_wiring(no_live=skip_junction_checks)
+    if not skip_junction_checks:
         check_drift()
     check_no_ledgers_in_repo()
     check_criteria(fix)
@@ -568,7 +579,10 @@ def main() -> int:
     if not no_live:
         check_rulebook_enforcement()
     if no_live:
-        print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
+        print("skipped: drift check, wiring live-path/junction/symlink resolution, "
+              "RULEBOOK enforcement (--no-live)")
+    elif no_drift:
+        print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-drift)")
     # A warning that never fails anything is the noise this workspace already
     # got burned by (issue #7, criterion validator-signal-hygiene): every
     # consumer of this script — .githooks/pre-push, .github/workflows/
@@ -588,7 +602,9 @@ def main() -> int:
               f"each one in config/skill-composition-acknowledged.json with its tracking issue")
     if errors or warnings:
         return 1
-    print("OK: agents valid, no drift, criteria consistent, wiring valid, no leaked ledgers")
+    drift_claim = "drift not checked" if skip_junction_checks else "no drift"
+    print(f"OK: agents valid, {drift_claim}, criteria consistent, wiring valid, "
+          "no leaked ledgers")
     return 0
 
 
