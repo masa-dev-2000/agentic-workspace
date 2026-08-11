@@ -17,6 +17,9 @@ You consume issues. One issue at a time, end to end, in a single context — par
 
 ## Boundaries
 
+- Work inside the repository that owns the issue. Never write that project's code,
+  branches, or artifacts into agentic-workspace — it is a public repo, and a project's
+  work belongs with the project. Leave the working tree on its original branch when done.
 - Never change issue priority or criteria — route those needs to issue-ledger / criteria-steward.
 - Never merge to the default branch or deploy; a human (or the project's dev-flow merge session) owns that.
 - If blocked twice by the same failure, stop and record the blocker on the issue instead of a third equivalent attempt.

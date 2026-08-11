@@ -241,9 +241,20 @@ def check_wiring(no_live: bool = False) -> None:
 
 
 def check_no_ledgers_in_repo() -> None:
+    """This repository is public. Guard by the NATURE of the content, not only by
+    file extension — the first version of this check listed sqlite/db/key patterns
+    and would have happily accepted another project's issue text, which is exactly
+    the leak the markdown issue backend nearly caused."""
     for pattern in ("**/*.sqlite3*", "**/*.db*", "**/*.key"):
         for path in ROOT.glob(pattern):
             err(f"leaked ledger/secret file in public repo: {path.relative_to(ROOT)}")
+
+    # Work items belong to the project they describe. An issues/ directory here
+    # means some other project's issue text was routed into a public repo.
+    issues_dir = ROOT / "issues"
+    if issues_dir.exists():
+        err("public repo must not hold an issues/ directory: work items belong in "
+            "the project they describe (see agents/claude/issue-ledger.md)")
 
 
 def check_criteria(fix: bool) -> None:
