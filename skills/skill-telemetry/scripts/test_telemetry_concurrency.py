@@ -424,7 +424,7 @@ class TelemetryConcurrencyTests(unittest.TestCase):
             )[0]["count"],
         )
         self.assertEqual(
-                "6",
+                str(telemetry_store.SCHEMA_VERSION),
             store.rows(
                 "SELECT value FROM meta WHERE key='schema_version'"
             )[0]["value"],

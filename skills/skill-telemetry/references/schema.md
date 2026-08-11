@@ -72,6 +72,15 @@ through this cleanup-only path, preserving trusted IDs, hashes, and provenance. 
 `status` and `doctor` expose the exact pending marker without attempting repair. Outcome
 evaluation excludes legacy-unverified provenance.
 
+Schema v8 adds `skill_runs.detection_class` (`invocation` | `read` | `legacy-unknown`) and bumps
+spool schema to v3. A skill identity is `invocation` only when the hook's `tool_name` is `Skill`
+(the tool's own `skill` argument names the invoked Skill directly); any other tool_name that
+merely mentions a `SKILL.md` path in its `tool_input` is `read`. This distinction is decided by
+tool_name alone, never by guessed host platform, so it is correct both where invoking and reading
+are the same action (Codex) and where they are different tools (Claude Code: Skill tool vs. Read
+tool). Rows written before this migration cannot be retroactively told apart and keep
+`legacy-unknown` rather than being reclassified as either value.
+
 ## Hook spool
 
 Lifecycle Hooks never open, initialize, query, or write SQLite. Each Hook invocation derives at
