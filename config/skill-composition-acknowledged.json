@@ -1,0 +1,66 @@
+{
+  "$comment": [
+    "Acknowledged Skill/Runtime/Hook composition violations that predate the",
+    "check in scripts/validate_workspace.py (check_skill_composition).",
+    "One entry per skill per rule. Every entry must name the issue that tracks",
+    "fixing it, so the exemption is temporary and visible rather than silent",
+    "(criterion validator-signal-hygiene). There is no blanket/wildcard form.",
+    "When a listed skill stops violating its rule the validator FAILS until the",
+    "entry is deleted, so this list can only shrink.",
+    "Rules: body-length | absolute-path | inline-schema | command-blocks.",
+    "Baseline recorded 2026-08-11 against 47 skills; 9 entries across 7 skills,",
+    "tracked by issues #12, #13, #17, #22."
+  ],
+  "acknowledged": {
+    "adaptive-orchestrator": {
+      "inline-schema": {
+        "issue": "#13",
+        "reason": "38-line handoff/routing schema inlined in SKILL.md; #13 moves the GAN routing spec out to references/ and adds its conformance suite."
+      },
+      "absolute-path": {
+        "issue": "#12",
+        "reason": "Validation and unittest commands hard-code C:\\Users\\masa paths."
+      }
+    },
+    "build-complete-app": {
+      "absolute-path": {
+        "issue": "#12",
+        "reason": "Default new-project location is written as a literal C:\\Users\\masa path."
+      }
+    },
+    "failure-learning": {
+      "absolute-path": {
+        "issue": "#12",
+        "reason": "Points at the rulebook by absolute path instead of a resolved location."
+      }
+    },
+    "mistake-proofing": {
+      "absolute-path": {
+        "issue": "#12",
+        "reason": "Description and body name the rulebook by absolute path."
+      }
+    },
+    "ui-ux-pro-max": {
+      "command-blocks": {
+        "issue": "#22",
+        "reason": "14 command blocks; #22 moves the command sequences into the skill's existing scripts/."
+      }
+    },
+    "feedback-learning": {
+      "command-blocks": {
+        "issue": "#22",
+        "reason": "11 command blocks; #22 moves the command sequences into the skill's existing scripts/."
+      }
+    },
+    "hatch-pet": {
+      "body-length": {
+        "issue": "#17",
+        "reason": "539-line SKILL.md; #17 moves manifest mutation and file deletion out of SKILL.md bash, which is the bulk of the overflow."
+      },
+      "command-blocks": {
+        "issue": "#17",
+        "reason": "18 command blocks encoding manifest mutation and deletion as prose."
+      }
+    }
+  }
+}

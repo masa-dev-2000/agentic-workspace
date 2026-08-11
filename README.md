@@ -17,7 +17,9 @@ path read natively by Codex CLI and Gemini CLI.
 
 Live locations are junctions/symlinks into this repo (skills) or synced copies (see each dir).
 
-Validation: `python -X utf8 scripts/validate_workspace.py` — agent frontmatter, wiring registry (`config/wiring.json`, schema: `config/wiring.schema.md`) and copy-dir drift derived from it, criteria schema/index (`--fix` regenerates the index), leaked-ledger guard. Run before every push.
+Validation: `python -X utf8 scripts/validate_workspace.py` — agent frontmatter, wiring registry (`config/wiring.json`, schema: `config/wiring.schema.md`) and copy-dir drift derived from it, criteria schema/index (`--fix` regenerates the index), Skill composition against `skills/AGENTS.md` (SKILL.md body length, machine-specific absolute paths, inline schema blocks, command-block density), leaked-ledger guard. Run before every push.
+
+Composition violations that predate that check are acknowledged one skill and one rule at a time in `config/skill-composition-acknowledged.json`; each entry names the issue that tracks fixing it, and an entry whose skill no longer violates the rule fails the validator, so the list can only shrink. There is no blanket-mute form. An unacknowledged warning also exits non-zero — every consumer of this validator gates on the exit code alone, so a warning that stayed green would be a warning nobody ever resolves (criterion `validator-signal-hygiene`). Unit tests: `python -X utf8 -m unittest discover -s scripts/tests -v`.
 
 This is mechanized by `.githooks/pre-push`, which runs the same validator and
 blocks the push on failure. It is not enabled by default — enable it once per
