@@ -1,7 +1,7 @@
 ---
 id: decision-risk-levels
 statement: An automated decision may run unattended only at the risk level its recorded human-review agreement rate supports, and every automated decision must record its basis and confidence so that agreement can be measured at all.
-status: proposed
+status: active
 version: 1
 ---
 
@@ -96,3 +96,4 @@ nothing — the same failure mode the ops rulebook rejects for human mistakes.
 ## Status History
 
 - 2026-08-11: drafted as proposed.
+- 2026-08-11: activated. Approval: actor=github:masa-dev-2000 channel=claude-code-session date=2026-08-11 ref="承認"
