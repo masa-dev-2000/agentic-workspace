@@ -62,12 +62,24 @@ REASON_SUFFIX = "RULEBOOK R2に従い依存関係台帳を確認してから実�
 
 
 def extract_target(command: str) -> str:
-    """Best-effort last path-like token in the command (not a full arg parser)."""
+    """Describe what the command would remove.
+
+    Naming a single token is unsafe. `rm -rf ~/dev/important --exclude node_modules`
+    ends in node_modules, so a last-token guess showed the user the harmless name
+    while the real target was elsewhere. A confirmation prompt that misidentifies its
+    own subject is worse than no prompt, because it buys a confident yes. This is not
+    a shell parser, so when the target is ambiguous, show every candidate rather than
+    pick one.
+    """
     tokens = [t for t in command.split() if t and not t.startswith("-")]
     skip = {"rm", "rmdir", "del", "remove-item", "rd", "git", "gh", "push", "branch",
-            "repo", "release", "delete"}
+            "repo", "release", "delete", "sudo"}
     candidates = [t for t in tokens if t.lower() not in skip]
-    return candidates[-1] if candidates else command.strip()
+    if not candidates:
+        return command.strip()
+    if len(candidates) == 1:
+        return candidates[0]
+    return " / ".join(candidates[:4]) + ("…" if len(candidates) > 4 else "")
 
 
 def emit_ask(reason: str) -> None:
