@@ -70,6 +70,12 @@
       "description": "hooks.json is synced separately by codex-hooks-json-copy; excluded here to avoid double-checking."
     },
     {
+      "id": "research-log-ledger",
+      "kind": "ledger",
+      "live": "~/.claude/research-log",
+      "description": "Read-provenance JSONL log written by hooks/claude/log-reads.sh (one file per day). Read back with scripts/research_log.py."
+    },
+    {
       "id": "failure-learning-ledger",
       "kind": "ledger",
       "live": "~/.codex/failure-learning"

@@ -82,6 +82,45 @@ HOOK_PROBES: dict[str, list[tuple[str, dict, int, str]]] = {
             "ConfigChange hook must run and exit 0 (it only logs, never blocks)",
         ),
     ],
+    # guard-deletion.sh always exits 0 (it asks, it never denies), so the
+    # probe direction is carried by stdout content, not the exit code — see
+    # the stdout_must_contain/stdout_must_be_empty fields consumed below.
+    "guard-deletion.sh": [
+        (
+            "ask: rm -rf destructive path",
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf /some/project"}},
+            0,
+            "destructive deletion outside any safe-scratch pattern must yield ask",
+        ),
+        (
+            "no-ask: scratch-path deletion",
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf $TEMP/junk"}},
+            0,
+            "deletion under a SAFE_SCRATCH_PATTERNS path must pass silently (no ask)",
+        ),
+    ],
+    # log-reads.sh always exits 0 and prints nothing on success (hook contract);
+    # its side effect is a line appended to today's research-log file, checked
+    # separately by check_research_log() rather than via HOOK_PROBES stdout.
+    "log-reads.sh": [
+        (
+            "run: Read tool_input",
+            {"tool_name": "Read", "tool_input": {"file_path": "C:/Users/masa/dev/ws-guards/README.md"},
+             "session_id": "health-check-probe"},
+            0,
+            "Read call must be logged without error (see check_research_log for the side-effect assertion)",
+        ),
+    ],
+}
+
+# Per-case stdout assertions for hooks whose pass/fail direction is not
+# expressible via exit code alone (guard-deletion.sh always exits 0). Keyed
+# by (hook_name, label) to stay next to HOOK_PROBES without bloating every
+# tuple in it with fields only two hooks need.
+HOOK_PROBE_STDOUT_ASSERTIONS: dict[tuple[str, str], tuple[str, str]] = {
+    # (hook, label): (mode, needle) where mode is "contains" or "empty"
+    ("guard-deletion.sh", "ask: rm -rf destructive path"): ("contains", '"permissionDecision": "ask"'),
+    ("guard-deletion.sh", "no-ask: scratch-path deletion"): ("empty", ""),
 }
 
 
@@ -142,15 +181,61 @@ def check_defense_probe(hooks_dir: Path) -> tuple[bool, list[str]]:
             continue
         for label, stdin_json, expected_exit, desc in cases:
             rc, out, err = run_hook(hook_path, stdin_json)
-            if rc == expected_exit:
-                lines.append(f"PASS: {name} [{label}]: exit {rc} as expected ({desc})")
-            else:
+            if rc != expected_exit:
                 ok = False
                 lines.append(
                     f"FAIL: {name} [{label}]: expected exit {expected_exit}, got {rc} "
                     f"({desc}) stderr={err.strip()!r}"
                 )
+                continue
+            assertion = HOOK_PROBE_STDOUT_ASSERTIONS.get((name, label))
+            if assertion:
+                mode, needle = assertion
+                stdout_ok = (needle in out) if mode == "contains" else (out.strip() == "")
+                if not stdout_ok:
+                    ok = False
+                    lines.append(
+                        f"FAIL: {name} [{label}]: exit {rc} but stdout assertion "
+                        f"({mode}={needle!r}) failed, got stdout={out!r} ({desc})"
+                    )
+                    continue
+            lines.append(f"PASS: {name} [{label}]: exit {rc} as expected ({desc})")
     return ok, lines
+
+
+def check_research_log(hooks_dir: Path) -> tuple[bool, list[str]]:
+    """Side-effect assertion for log-reads.sh: pipe a synthetic Read probe
+    through it and confirm a matching line landed in today's research-log
+    file. HOOK_PROBES only checks exit code for this hook (it is silent on
+    success), so the log content is the actual pass/fail signal."""
+    import os
+
+    hook_path = hooks_dir / "log-reads.sh"
+    if not hook_path.is_file():
+        return False, [f"FAIL: log-reads.sh not found at {hook_path}"]
+    if not _BASH:
+        return False, ["ERROR: no real Git Bash found — cannot execute log-reads.sh"]
+
+    marker = f"health-check-probe-{os.getpid()}"
+    stdin_json = {
+        "tool_name": "Read",
+        "tool_input": {"file_path": f"C:/health-check-probe/{marker}.md"},
+        "session_id": marker,
+    }
+    rc, out, err = run_hook(hook_path, stdin_json)
+    if rc != 0:
+        return False, [f"FAIL: log-reads.sh exited {rc}, expected 0, stderr={err.strip()!r}"]
+    if out.strip() or err.strip():
+        return False, [f"FAIL: log-reads.sh must print nothing on success, got stdout={out!r} stderr={err!r}"]
+
+    log_dir = Path.home() / ".claude" / "research-log"
+    log_file = log_dir / f"{datetime.now().strftime('%Y-%m-%d')}.jsonl"
+    if not log_file.is_file():
+        return False, [f"FAIL: expected log file {log_file} was not created"]
+    found = marker in log_file.read_text(encoding="utf-8")
+    if not found:
+        return False, [f"FAIL: {log_file} does not contain the probe marker '{marker}'"]
+    return True, [f"PASS: log-reads.sh appended a matching line to {log_file}"]
 
 
 def check_wiring() -> tuple[bool, list[str]]:
@@ -325,6 +410,9 @@ def main() -> int:
 
     ok, lines = check_defense_probe(hooks_dir)
     sections.append(("DEFENSE PROBE", ok, lines))
+
+    ok, lines = check_research_log(hooks_dir)
+    sections.append(("RESEARCH LOG", ok, lines))
 
     ok, lines = check_wiring()
     sections.append(("WIRING", ok, lines))
