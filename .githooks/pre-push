@@ -8,13 +8,66 @@
 # Works under Git Bash on Windows (this is a POSIX sh script; Git for Windows
 # ships bash/sh, so no Windows-specific handling is needed here). Reads and
 # discards stdin (the ref list Git supplies) since the validator doesn't need it.
+#
+# Worktree rule (issue #25). The live checks (drift, wiring live-path/junction
+# resolution) compare this repo against the live locations under ~/.codex,
+# ~/.claude, ~/.agents. Those are junctions pointing at the MAIN checkout, so
+# from a linked worktree they compare two different trees and produce ~27
+# failures that have nothing to do with the branch being pushed. The old
+# unconditional live run therefore made every worktree push impossible without
+# --no-verify, i.e. the gate was fully off for the workflow this repo actually
+# uses. Always passing --no-live would instead silently weaken the main
+# checkout, where drift against the live tree is real and worth catching.
+# So: downgrade only in a worktree, and say so loudly on stderr — a reduced
+# gate must never be mistaken for a full pass.
+#
+# The downgrade uses --no-drift, not --no-live. --no-live is CI's flag and also
+# drops check_rulebook_enforcement(), which compares the RULEBOOK against THIS
+# tree's skills/ and works perfectly well from a worktree; using it here would
+# quietly lose a check that nothing else re-runs (CI is --no-live too).
+# --no-drift skips exactly the junction-backed comparisons that are wrong here.
+#
+# Detection: `git rev-parse --path-format=absolute --git-dir` differs from
+# --git-common-dir inside a linked worktree (.git/worktrees/NAME vs .git) and
+# is identical in the main checkout. Verified on this machine with git
+# 2.48.1.windows.1 for both cases. --path-format=absolute matters: without it
+# the main checkout returns the relative ".git" for both while a worktree
+# returns absolute paths, so the comparison would hold by accident rather than
+# by rule. The "is .git a file?" test was rejected: it is also true for
+# submodules, and it says nothing about which common dir the checks resolve
+# against, which is the property that actually breaks the live comparison.
 
 cat >/dev/null
 
 repo_root=$(git rev-parse --show-toplevel) || exit 1
 cd "$repo_root" || exit 1
 
-python -X utf8 scripts/validate_workspace.py
+git_dir=$(git rev-parse --path-format=absolute --git-dir) || {
+    echo "pre-push: 'git rev-parse --git-dir' failed — cannot tell worktree from main" >&2
+    echo "pre-push: checkout, so refusing to guess which checks are valid. Push blocked." >&2
+    exit 1
+}
+git_common_dir=$(git rev-parse --path-format=absolute --git-common-dir) || {
+    echo "pre-push: 'git rev-parse --git-common-dir' failed — push blocked." >&2
+    exit 1
+}
+
+if [ "$git_dir" != "$git_common_dir" ]; then
+    main_worktree=${git_common_dir%/.git}
+    echo "pre-push: linked worktree detected ($repo_root)." >&2
+    echo "pre-push: REDUCED GATE — running validator with --no-drift." >&2
+    echo "pre-push: skipped: drift check, wiring live-path/junction/symlink resolution." >&2
+    echo "pre-push: still run here: agents, skills, criteria, generated docs, doc refs," >&2
+    echo "pre-push: leaked ledgers, RULEBOOK enforcement." >&2
+    echo "pre-push: reason: the ~/.codex, ~/.claude, ~/.agents junctions resolve to the" >&2
+    echo "pre-push: main checkout ($main_worktree), not this worktree, so those two check" >&2
+    echo "pre-push: groups would compare unrelated trees. They are covered by pushes from" >&2
+    echo "pre-push: the main checkout." >&2
+    python -X utf8 scripts/validate_workspace.py --no-drift
+else
+    echo "pre-push: main checkout — running the full validator including live checks." >&2
+    python -X utf8 scripts/validate_workspace.py
+fi
 status=$?
 
 if [ "$status" -ne 0 ]; then
