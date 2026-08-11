@@ -70,6 +70,7 @@ python -X utf8 scripts/bootstrap_workspace.py --markdown
 | claude-user-root-md-copy | copy | config/CLAUDE.user-root.md | ~/CLAUDE.md |
 | codex-hooks-json-copy | copy | hooks/codex/hooks.json | ~/.codex/hooks.json |
 | codex-hooks-dir-copy | copy | hooks/codex | ~/.codex/hooks |
+| research-log-ledger | ledger |  | ~/.claude/research-log |
 | failure-learning-ledger | ledger |  | ~/.codex/failure-learning |
 | feedback-learning-ledger | ledger |  | ~/.codex/feedback-learning |
 | skill-telemetry-ledger | ledger |  | ~/.codex/skill-telemetry |
