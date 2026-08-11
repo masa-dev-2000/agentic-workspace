@@ -21,6 +21,7 @@ from telemetry_store import (
     PLUGIN_MANIFEST_LIMIT,
     PRIVACY_REPAIR_PENDING,
     PRIVACY_REPAIR_VERSION,
+    SCHEMA_VERSION,
     PrivacyRepairPendingError,
     TelemetryStore,
     utc_now,
@@ -41,6 +42,44 @@ class TelemetryTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_skill_tool_invocation_is_invocation_not_read(self):
+        # Two synthetic PostToolUse payloads for the same skill: one is a
+        # genuine Skill-tool invocation (Claude Code's own tool, which names
+        # the skill via its `skill` argument per the tool's JSONSchema), the
+        # other is a Read of that skill's SKILL.md path (previously
+        # mis-detected as an invocation on Claude Code -- this is the bug
+        # being fixed). Exactly one of the two must classify as
+        # 'invocation'; the other must classify as 'read'.
+        skill_md = self.skill / "SKILL.md"
+        invocation_event = dict(
+            self.event,
+            tool_name="Skill",
+            tool_input={"skill": "skill-telemetry"},
+            tool_use_id="call-invocation",
+        )
+        read_event = dict(
+            self.event,
+            tool_name="Read",
+            tool_input={"file_path": str(skill_md)},
+            tool_use_id="call-read",
+        )
+        invocation_record = self.store.sanitize_hook_event(invocation_event)
+        read_record = self.store.sanitize_hook_event(read_event)
+
+        self.assertEqual(1, len(invocation_record["skills"]))
+        self.assertEqual(
+            "invocation", invocation_record["skills"][0]["detection_class"]
+        )
+        self.assertEqual(
+            "skill-telemetry", invocation_record["skills"][0]["skill_name"]
+        )
+
+        self.assertEqual(1, len(read_record["skills"]))
+        self.assertEqual("read", read_record["skills"][0]["detection_class"])
+        self.assertEqual(
+            "skill-telemetry", read_record["skills"][0]["skill_name"]
+        )
 
     def test_detect_dedupe_finish_feedback(self):
         paths = self.store.skill_paths(self.event["tool_input"])
@@ -1224,7 +1263,7 @@ class TelemetryTests(unittest.TestCase):
         row = migrated.rows(
             "SELECT value FROM meta WHERE key='schema_version'"
         )[0]
-        self.assertEqual("6", row["value"])
+        self.assertEqual(str(SCHEMA_VERSION), row["value"])
         TelemetryStore(self.root, drain=False)
         tables = {
             item["name"] for item in migrated.rows(
@@ -1282,7 +1321,7 @@ class TelemetryTests(unittest.TestCase):
                                  'privacy_repair_version')"""
             )
         }
-        self.assertEqual("6", meta["schema_version"])
+        self.assertEqual(str(SCHEMA_VERSION), meta["schema_version"])
         self.assertEqual(COMPONENT_VERSION, meta["component_version"])
         self.assertEqual(PRIVACY_REPAIR_VERSION, meta["privacy_repair_version"])
 
@@ -1687,7 +1726,7 @@ class TelemetryTests(unittest.TestCase):
             "codex",
         )
         self.store.health(
-            "collector", "ok", "spool-v2;skills:0;evidence:0"
+            "collector", "ok", "spool-v3;skills:0;evidence:0"
         )
         db = sqlite3.connect(self.store.db_path)
         try:
@@ -1818,7 +1857,7 @@ class TelemetryTests(unittest.TestCase):
             ["artifact:legacyopaque123"],
             "unit-test",
         )
-        store.health("collector", "ok", "spool-v2;skills:0;evidence:0")
+        store.health("collector", "ok", "spool-v3;skills:0;evidence:0")
 
         raw_run = "skillrun_" + shape_canary[:32]
         raw_evidence = "skillevidence_" + shape_canary[:32]
