@@ -2428,9 +2428,9 @@ skills:
     path: mistake-proofing
     exposure: {surface: public, invocation: implicit, migrationState: local-source}
     responsibility: Enforce the global mistake-prevention rulebook (00_ops-rulebook) across projects with incident records, dependency-ledger checks, and horizontal deployment.
-    nonGoals: [handle Claude tool-execution failures (failure-loop-guard/failure-learning own those), draft external submission documents themselves, execute deletions before ledger check confirmation, punish or attribute blame to individuals]
+    nonGoals: [handle Claude tool-execution failures (failure-loop-guard/failure-learning own those), author external submission documents (gates finished drafts only), execute deletions before ledger check confirmation, punish or attribute blame to individuals]
     triggers:
-      positive: [user reports a business mistake or near-miss, 再発防止 or なぜなぜ分析 requested, account or service deletion/cancellation requested, external submission with volatile information, deadline-bound procedure received]
+      positive: [user reports a business mistake or near-miss, 再発防止 or なぜなぜ分析 requested, account or service deletion/cancellation requested, external submission with volatile information, deadline-bound procedure received, outbound client-facing or regulatory document drafted and about to be handed over]
       negative: [tool or command failure during normal work, generic document drafting, project task management]
     dependencies:
       capabilities: []
@@ -2441,13 +2441,13 @@ skills:
     authority: {default: deny, effects: [read, workspace-write]}
     data: {reads: [rulebook-source, dependency-ledgers], writes: [{domain: rulebook-source, mode: artifact}], ownerOf: []}
     completion:
-      proof: [incident record or ledger row exists as a real file with reported path, deletion requests show a ledger-check result confirmed by the user before execution, countermeasures ranked mechanism over checklist over attention, horizontal-deployment question asked once per incident]
+      proof: [incident record or ledger row exists as a real file with reported path, deletion requests show a ledger-check result confirmed by the user before execution, countermeasures ranked mechanism over checklist over attention, horizontal-deployment question asked once per incident, outbound documents report the 4-point gate result with sources cited or assertions cut]
       verifier: self
       acceptedEvidence: [artifact, validate]
     failure: *standardFailure
     telemetry: *telemetry
-    evals: [incident-two-track-recording, pre-deletion-ledger-check, external-submission-registration, tool-failure-negative-routing]
+    evals: [incident-two-track-recording, pre-deletion-ledger-check, external-submission-registration, outbound-document-gate, tool-failure-negative-routing]
     maturity: alpha
     version: 0.1.0
     contractFingerprint: contract-v2:operations.mistake.prevention@0.1.0
-    contractContentDigest: sha256:2afea4f2199f928a43ba6b8e278ae3d2164661be8b5bcc7dc688c7599392fd48
+    contractContentDigest: sha256:800a2d3fffa66e6e52c4f49cfe72e99eb47f0b9e521af2d7dc2e1bbc020a72bf

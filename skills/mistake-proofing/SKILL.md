@@ -1,6 +1,6 @@
 ---
 name: mistake-proofing
-description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_work\00_ops-rulebook) to prevent and learn from business mistakes across all projects. Use when the user reports a mistake, near-miss, or asks for 再発防止・なぜなぜ分析; before deleting or cancelling an account, service, or subscription; when submitting documents or information to external parties (行政・顧客); or when a deadline-bound procedure is received. Records incidents with two-track (発生系/流出系) why-why analysis, checks the dependency ledger before irreversible actions, registers volatile external commitments, and updates the horizontal-deployment scorecard (星取表). Do not use for Claude tool-execution failures (use failure-loop-guard or failure-learning instead) or for drafting the external documents themselves.
+description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_work\00_ops-rulebook) to prevent and learn from business mistakes across all projects. Use when the user reports a mistake, near-miss, or asks for 再発防止・なぜなぜ分析; before deleting or cancelling an account, service, or subscription; when submitting documents or information to external parties (行政・顧客); when a deadline-bound procedure is received; and as a final gate whenever a client-facing, regulatory, sales, or outbound-email document has been drafted or revised and is about to be handed over. Records incidents with two-track (発生系/流出系) why-why analysis, checks the dependency ledger before irreversible actions, registers volatile external commitments, gates outbound documents for unverified assertions, prohibited claims, contradictions with existing contracts, and stale versions, and updates the horizontal-deployment scorecard (星取表). Do not use for Claude tool-execution failures (use failure-loop-guard or failure-learning instead); it gates finished drafts but does not author the documents (use the applicable drafting skill for that).
 ---
 
 # Mistake Proofing（ミス防止ルールブック執行）
@@ -26,6 +26,7 @@ description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_
      時計で縛るのは一報だけ（その日のうち）。他は前段階の完了で次に進む。
    - incident記録はなぜなぜ分析を発生系/流出系の2系統で行い、「注意不足」で止めず仕組みの欠陥まで掘る。ヒアリングは1問ずつ。
    - 削除・解約の依頼を受けたら、**実行より先に**依存台帳（上記パス。無ければ案件フォルダを探す）と星取表を照合し、壊れる外部約束を提示する。依存が残る場合は移管完了まで削除を止め、即削除でなく停止を提案する。
+   - **外部に出る文書（クライアント資料・行政提出物・営業資料・送信メール）を作成／改訂したら、渡す前にR1bの4点を通す。**自分が書いた文書も必ず通す。断定した記述について**一次資料または確認相手・日付を言えるか**を自問し、言えないものは書き換えるか落とす。通した結果（引っかかった点と処置）をユーザーに報告する。
 3. 対策は RULEBOOK.md の「対策の型」に従う。S1（仕組み）から検討し、S1にしないなら降格理由を記録してからS2へ降りる。「気をつける」単独は受理しない。**検証方法と検証期日を必ず決める**（S1は再現テスト必須）。失敗の主体が人でもAIでも型は同じ。
 4. 終了時に必ず水平展開を1回問う：「同じ構造を持つ他の業務はないか」。候補があれば星取表に行を追加する。AI環境も列の1つなので、業務側の対策がAIの操作にも要るかを併せて見る。
 5. 変更・追記した資産（記録・台帳・星取表）のパスを報告して完了とする。
@@ -35,6 +36,7 @@ description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_
 | 場面 | ルール |
 |------|--------|
 | 外部への提出・約束（URL・口座・日付等の揮発情報を含む） | R1 台帳登録 |
+| **外部に出す文書の中身が固まった（配布・送信・提出の直前）** | **R1b 出す直前のゲート（4点）** |
 | アカウント・サービス・データの削除／解約 | R2 削除前照合 |
 | 期限つき手続きの発生 | R3 逆算チェック登録 |
 | ミス・ヒヤリの報告、再発防止依頼 | R4 incident記録・水平展開 |
@@ -47,3 +49,4 @@ description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_
 - 該当ルールの成果物（incident記録／台帳の行／星取表の更新／照合記録）が実ファイルとして存在し、パスを報告済みであること。
 - R2では照合結果をユーザーが確認してから削除に進んでいること（照合前の削除実行は不可）。
 - R4では止血と一報が済んだことを確認してから記録に進んでいること（記録を先に書き始めない）。
+- R1bでは、断定した記述それぞれについて出典（一次資料／確認相手・日付）を示せているか、示せないものを落としたか、契約書との突き合わせ結果を報告していること。
