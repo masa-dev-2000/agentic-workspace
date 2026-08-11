@@ -104,6 +104,33 @@ for r in range(5, ws.max_row+1):
 `YYYY-MM-DD 有効／無効／判定不能` の形で記入する。打ちっぱなしの対策を残さないことが目的。
 判定が「無効」なら、RULEBOOK.md の対策の型に従って強度を上げ直す（S2→S1 等）。
 
+### Step 7: 自動判断のレビュー（精度向上ループ）
+
+未レビューの自動判断を、確信度の低い順に列挙する。
+
+```bash
+python -X utf8 C:/Users/masa/dev/agentic-workspace/scripts/decision_stats.py --pending
+```
+
+各判断について、ユーザーに「同意 / 不同意（+ 正しい答え）」を聞く。**確信度=低のものを優先**し、
+高いものは件数が多ければ抜き取りでよい。結果は該当issueのコメント内 `review:` を
+`agree` または `disagree: <正しい答え>` に書き換えて記録する。
+
+**不同意は必ず次の3つのどれかに落とす。「AIが間違えた」で終わらせない**（判断軸
+`decision-risk-levels` の要求）:
+
+1. 判断軸が無かった → criteria-steward に起草させる
+2. 判断軸の解釈がずれた → その判断軸に反例を追記させる
+3. リスク分類が甘かった → その判断クラスを L1→L2 に降格する提案を出す
+
+最後に一致率と昇格・降格の推奨を確認する。
+
+```bash
+python -X utf8 C:/Users/masa/dev/agentic-workspace/scripts/decision_stats.py
+```
+
+昇格・降格自体は L3（人間が実行）。推奨が出ても、このコマンドでは実行しない。
+
 ## このコマンドがやらないこと
 
 - PR のマージ（`/kio-devmerge` `/kio-mainmerge` の領域）
@@ -113,5 +140,5 @@ for r in range(5, ws.max_row+1):
 
 ## 最後に
 
-Step 0〜6 それぞれの結果（件数・渡した先・スキップした場合はその理由）を1つのレポートに
+Step 0〜7 それぞれの結果（件数・渡した先・スキップした場合はその理由）を1つのレポートに
 まとめて提示する。
