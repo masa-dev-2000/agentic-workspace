@@ -43,8 +43,9 @@ repo_root=$(git rev-parse --show-toplevel) || exit 1
 cd "$repo_root" || exit 1
 
 git_dir=$(git rev-parse --path-format=absolute --git-dir) || {
-    echo "pre-push: 'git rev-parse --git-dir' failed — cannot tell worktree from main" >&2
-    echo "pre-push: checkout, so refusing to guess which checks are valid. Push blocked." >&2
+    echo "pre-push: 'git rev-parse --path-format=absolute --git-dir' failed (needs git" >&2
+    echo "pre-push: >= 2.31) — cannot tell worktree from main checkout, so refusing to" >&2
+    echo "pre-push: guess which checks are valid. Push blocked." >&2
     exit 1
 }
 git_common_dir=$(git rev-parse --path-format=absolute --git-common-dir) || {
@@ -57,8 +58,8 @@ if [ "$git_dir" != "$git_common_dir" ]; then
     echo "pre-push: linked worktree detected ($repo_root)." >&2
     echo "pre-push: REDUCED GATE — running validator with --no-drift." >&2
     echo "pre-push: skipped: drift check, wiring live-path/junction/symlink resolution." >&2
-    echo "pre-push: still run here: agents, skills, criteria, generated docs, doc refs," >&2
-    echo "pre-push: leaked ledgers, RULEBOOK enforcement." >&2
+    echo "pre-push: still run here: agents, skills, wiring schema/structure, criteria," >&2
+    echo "pre-push: generated docs, doc refs, leaked ledgers, RULEBOOK enforcement." >&2
     echo "pre-push: reason: the ~/.codex, ~/.claude, ~/.agents junctions resolve to the" >&2
     echo "pre-push: main checkout ($main_worktree), not this worktree, so those two check" >&2
     echo "pre-push: groups would compare unrelated trees. They are covered by pushes from" >&2
