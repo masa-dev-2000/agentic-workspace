@@ -1,6 +1,6 @@
 ---
 name: mistake-proofing
-description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_work\00_ops-rulebook) to prevent and learn from business mistakes across all projects. Use when the user reports a mistake or near-miss, or asks for 再発防止・なぜなぜ分析; before deleting or cancelling an account, service, or subscription; when submitting documents to external parties (行政・顧客); when a deadline-bound procedure is received; and as a final gate before handing over a client-facing, regulatory, sales, or outbound-email document. Runs two-track (発生系/流出系) why-why analysis, checks the dependency ledger before irreversible actions, registers volatile external commitments, gates outbound drafts for unverified assertions and stale versions, and updates the 星取表. Do not use for Claude tool-execution failures (use failure-loop-guard or failure-learning) or to author the documents themselves.
+description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_work\00_ops-rulebook) to prevent and learn from business mistakes across all projects. Use when the user reports a mistake or near-miss, or asks for 再発防止・なぜなぜ分析; before deleting or cancelling anything that something else may depend on - an account, service, subscription, repository, directory, database, or file set - including local deletions; when submitting documents to external parties (行政・顧客); when a deadline-bound procedure is received; and as a final gate before handing over a client-facing, regulatory, sales, or outbound-email document. Runs two-track (発生系/流出系) why-why analysis, checks the dependency ledger before irreversible actions, registers volatile external commitments, gates outbound drafts, and updates the 星取表. Do not use for Claude tool-execution failures (use failure-loop-guard or failure-learning) or to author the documents themselves.
 ---
 
 # Mistake Proofing（ミス防止ルールブック執行）
@@ -26,7 +26,9 @@ description: Apply the global mistake-prevention rulebook (C:\Users\masa\dev\00_
      時計で縛るのは一報だけ（その日のうち）。他は前段階の完了で次に進む。
    - incident記録はなぜなぜ分析を発生系/流出系の2系統で行い、「注意不足」で止めず仕組みの欠陥まで掘る。ヒアリングは1問ずつ。
    - 削除・解約の依頼を受けたら、**実行より先に**依存台帳（上記パス。無ければ案件フォルダを探す）と星取表を照合し、壊れる外部約束を提示する。依存が残る場合は移管完了まで削除を止め、即削除でなく停止を提案する。
-   - **外部に出る文書（クライアント資料・行政提出物・営業資料・送信メール）を作成／改訂したら、渡す前にR1bの4点を通す。**自分が書いた文書も必ず通す。断定した記述について**一次資料または確認相手・日付を言えるか**を自問し、言えないものは書き換えるか落とす。通した結果（引っかかった点と処置）をユーザーに報告する。
+   - **外部に出る文書（クライアント資料・行政提出物・営業資料・送信メール）を作成／改訂したら、渡す前にR1bの4点を通す。**自分が書いた文書も必ず通す。断定した記述について**一次資料または確認相手・日付を言えるか**を自問し、言えないものは書き換えるか落とす。
+     **制度・法令に触れる記述は、一次資料とその訂正履歴を実際に開いて突き合わせる**（AI研修なら `design/subsidy/subsidy-findings-*.md`）。**他の自社資料と一致していることを根拠にしない**——誤りが複数資料に伝播していると内部整合では検出できない（2026-08-11の検証で実際に見逃した）。
+     通した結果（引っかかった点と処置）をユーザーに報告する。
 3. 対策は RULEBOOK.md の「対策の型」に従う。S1（仕組み）から検討し、S1にしないなら降格理由を記録してからS2へ降りる。「気をつける」単独は受理しない。**検証方法と検証期日を必ず決める**（S1は再現テスト必須）。失敗の主体が人でもAIでも型は同じ。
 4. 終了時に必ず水平展開を1回問う：「同じ構造を持つ他の業務はないか」。候補があれば星取表に行を追加する。AI環境も列の1つなので、業務側の対策がAIの操作にも要るかを併せて見る。
 5. 変更・追記した資産（記録・台帳・星取表）のパスを報告して完了とする。

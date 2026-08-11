@@ -340,6 +340,38 @@ def check_doc_references() -> None:
                 err(f"{rel}: references function '{func}' that no script defines")
 
 
+RULEBOOK = HOME / "dev" / "00_work" / "00_ops-rulebook" / "RULEBOOK.md"
+MAPPING_ROW_RE = re.compile(r"^\|\s*(R\d)\s*\|[^|]*\|\s*([a-z0-9-]+)\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
+
+
+def check_rulebook_enforcement() -> None:
+    """A rule only fires if its trigger words are in the enforcing skill's
+    description — description matching is the whole routing signal. On 2026-08-11
+    R2 covered データ (data) while the skill's description listed only account /
+    service / subscription, so a directory deletion never reached the skill.
+    The rulebook's enforcement-mapping table is the source of truth; this reads it."""
+    if not RULEBOOK.is_file():
+        err(f"rulebook not found at {RULEBOOK} — enforcement mapping cannot be checked")
+        return
+    rows = MAPPING_ROW_RE.findall(RULEBOOK.read_text(encoding="utf-8"))
+    if not rows:
+        err("RULEBOOK.md: no enforcement-mapping rows found (expected a table of "
+            "rule | scope | skill | required words)")
+        return
+    for rule, skill_name, words in rows:
+        skill = ROOT / "skills" / skill_name / "SKILL.md"
+        if not skill.is_file():
+            err(f"RULEBOOK.md {rule}: enforcing skill '{skill_name}' does not exist")
+            continue
+        fm = parse_frontmatter(skill)
+        desc = (fm or {}).get("description", "").lower()
+        missing = [w.strip() for w in words.split(",")
+                   if w.strip() and w.strip().lower() not in desc]
+        if missing:
+            err(f"RULEBOOK.md {rule}: skills/{skill_name} description is missing "
+                f"trigger word(s) {missing} — the rule exists but will not fire")
+
+
 def main() -> int:
     fix = "--fix" in sys.argv
     no_live = "--no-live" in sys.argv
@@ -352,6 +384,8 @@ def main() -> int:
     check_criteria(fix)
     check_generated_docs(fix)
     check_doc_references()
+    if not no_live:
+        check_rulebook_enforcement()
     if no_live:
         print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
     if errors:
