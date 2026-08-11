@@ -103,8 +103,8 @@ That is expected and not a real problem — it only means: run `--check` (and
 Ledger and scheduled-task entries reported `OK` even from the worktree, since
 those checks don't depend on repo path.
 
-To validate the registry's own structure and drift without touching the live
-filesystem (e.g. in CI, or inside a worktree):
+To validate the registry's own structure without touching this machine's home
+directory at all (CI):
 
 ```
 python -X utf8 scripts/validate_workspace.py --no-live
@@ -113,16 +113,31 @@ python -X utf8 scripts/validate_workspace.py --no-live
 Actual output:
 
 ```
-skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)
-OK: agents valid, no drift, criteria consistent, wiring valid, no leaked ledgers
+skipped: drift check, wiring live-path/junction/symlink resolution, RULEBOOK enforcement (--no-live)
+OK: agents valid, drift not checked, criteria consistent, wiring valid, no leaked ledgers
+```
+
+Inside a linked `git worktree` use `--no-drift` instead: it skips only the two
+check groups that compare the repo against the `~/.codex`, `~/.claude`,
+`~/.agents` junctions (which resolve to the main checkout, so from a worktree
+they compare unrelated trees), and keeps RULEBOOK enforcement, which compares
+the RULEBOOK against the worktree's own `skills/` and is still meaningful:
+
+```
+python -X utf8 scripts/validate_workspace.py --no-drift
+```
+
+```
+skipped: drift check, wiring live-path/junction/symlink resolution (--no-drift)
+OK: agents valid, drift not checked, criteria consistent, wiring valid, no leaked ledgers
 ```
 
 Plain `python -X utf8 scripts/validate_workspace.py` (no flag) is the normal
-mode outside a worktree — it additionally runs the drift check and the
+mode in the main checkout — it additionally runs the drift check and the
 junction/symlink live-resolution check against this machine's real
-`~/.claude`, `~/.codex`, etc. Use `--no-live` only when there is no
-meaningful "this machine" context to check against (CI, or a worktree whose
-junctions necessarily point elsewhere).
+`~/.claude`, `~/.codex`, etc. `.githooks/pre-push` picks the flag automatically
+(none in the main checkout, `--no-drift` in a worktree) and prints what it
+skipped.
 
 ### Other platforms
 

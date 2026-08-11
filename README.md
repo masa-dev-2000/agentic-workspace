@@ -30,9 +30,14 @@ git config core.hooksPath .githooks
 `--no-live` skips the live-filesystem checks (drift + wiring liveness), which
 require this machine's home directory (`~/.claude`, `~/.codex`, etc.) and
 therefore cannot run on a CI runner; `.github/workflows/validate.yml` runs
-`scripts/validate_workspace.py --no-live` on every pull request and push, and
-the pre-push hook (which does run on this machine) still runs the full
-validator with live checks included.
+`scripts/validate_workspace.py --no-live` on every pull request and push. The
+pre-push hook (which does run on this machine) runs the full validator with
+live checks from the main checkout; from a linked `git worktree` it downgrades
+to `--no-drift`, which skips only the drift and wiring-liveness comparisons
+(the junctions resolve to the main checkout, so from a worktree they compare
+unrelated trees) and keeps every other check, including RULEBOOK enforcement.
+The hook prints on stderr which groups it skipped and why, so a reduced gate is
+never silent.
 
 Change management is deliberately minimal: this is a single-owner repo, so
 GitHub branch protection is not enabled (the owner either bypasses it or is
