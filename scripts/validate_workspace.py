@@ -10,7 +10,11 @@ Checks (exit 1 on any failure):
    from kind=="copy" entries) must match their live sources.
 3. Criteria: schema of criteria/*.md and CRITERIA.md index consistency
    (use --fix to regenerate the index).
-4. Leaked ledgers: no *.sqlite3*, *.db*, or *.key files anywhere in the repo
+4. Skill composition (skills/AGENTS.md:30-32, 66-72): SKILL.md body length,
+   machine-specific absolute paths, inline schema blocks, command-block density.
+   Pre-existing violations are acknowledged per skill and per rule in
+   config/skill-composition-acknowledged.json, each naming its tracking issue.
+5. Leaked ledgers: no *.sqlite3*, *.db*, or *.key files anywhere in the repo
    (this repo is public).
 
 Run: python -X utf8 scripts/validate_workspace.py [--fix] [--no-live]
@@ -42,6 +46,10 @@ APPROVAL_LINE_RE = re.compile(
 )
 
 errors: list[str] = []
+# Non-fatal findings. Per criterion validator-signal-hygiene the steady state
+# here is empty: an accepted warning is recorded as an acknowledgement, not
+# printed forever.
+warnings: list[str] = []
 
 
 def expand(p: str) -> Path:
@@ -56,6 +64,10 @@ def load_wiring() -> list[dict]:
 
 def err(msg: str) -> None:
     errors.append(msg)
+
+
+def warn(msg: str) -> None:
+    warnings.append(msg)
 
 
 def parse_frontmatter(path: Path) -> dict[str, str] | None:
@@ -131,6 +143,174 @@ def check_skills() -> None:
         nonportable = set(fm) - PORTABLE_SKILL_FIELDS
         if nonportable:
             err(f"{tag}: vendor-specific frontmatter {sorted(nonportable)} — move to adapters or the metadata map")
+
+
+### Skill/Runtime/Hook composition (skills/AGENTS.md:30-32, 66-72) ###########
+
+# skills/AGENTS.md:30 states the limit verbatim ("Body under 500 lines").
+# This is not a tuned number: it is the written rule, transcribed.
+SKILL_BODY_MAX_LINES = 500
+
+# skills/AGENTS.md:32 says "Store detailed schemas and contracts outside
+# SKILL.md". A yaml/json fence needs a size that separates an illustrative
+# snippet from a transcribed contract. Measured over all 47 SKILL.md files on
+# 2026-08-11 with FENCE_RE below (indent- and tilde-tolerant, so the count is
+# not a parser artifact): exactly one yaml/json fence exceeds 15 lines
+# (adaptive-orchestrator's 38-line handoff schema, issue #13); every other one
+# is <=15. 20 sits inside that gap, so the threshold accuses only blocks the
+# corpus itself marks as outliers.
+SKILL_INLINE_SCHEMA_MAX_LINES = 20
+
+# skills/AGENTS.md:32 says "place deterministic behavior in scripts". Command
+# fence count is a weak proxy for that (a count cannot tell a two-line usage
+# example from embedded logic), so it is reported as a warning rather than an
+# error — but an unacknowledged warning still fails the run, see main().
+# Measured on 2026-08-11 with FENCE_RE below the counts are 18, 14, 11, 9, 3,
+# 3, 2, ... — 10 sits in the gap between 9 and 11, the only natural break in
+# the corpus.
+SKILL_COMMAND_BLOCK_MAX = 10
+
+SCHEMA_FENCE_LANGS = {"yaml", "yml", "json"}
+COMMAND_FENCE_LANGS = {"bash", "sh", "shell", "powershell", "ps1", "cmd", "console"}
+# Follows CommonMark closely enough that formatting choices are not escape
+# hatches: either fence character, a run of 3+ (so a ````-wrapped example does
+# not desync the pairing), and up to 3 spaces of indentation on both the opening
+# and the closing fence (fences inside list items are routinely indented).
+# The backreference makes the closer start with the opener's exact run, which is
+# what well-formed CommonMark writes.
+FENCE_RE = re.compile(
+    r"^[ ]{0,3}(?P<fence>`{3,}|~{3,})(?P<lang>[A-Za-z0-9_+-]*)[^\n]*\r?\n"
+    r"(?P<body>.*?)^[ ]{0,3}(?P=fence)",
+    re.S | re.M,
+)
+
+# Machine-specific home directories in every form this workspace actually
+# writes them: Windows drive paths, Git Bash /c/Users, and POSIX homes.
+ABSOLUTE_HOME_PATH_RE = re.compile(
+    r"(?:[A-Za-z]:[\\/]Users[\\/]|(?:/[a-z])?/Users/|/home/)[A-Za-z0-9._-]"
+)
+
+
+def fenced_blocks(text: str) -> list[tuple[str, str]]:
+    """(language, body) for every fenced block, lowercased language."""
+    return [(m.group("lang").lower(), m.group("body")) for m in FENCE_RE.finditer(text)]
+
+COMPOSITION_ACK_PATH = ROOT / "config" / "skill-composition-acknowledged.json"
+COMPOSITION_RULES = ("body-length", "absolute-path", "inline-schema", "command-blocks")
+
+
+def load_composition_acks() -> dict[str, dict[str, dict]]:
+    """Per-skill, per-rule acknowledgements of the composition violations that
+    predate this check. Blanket muting is not available on purpose: an entry
+    names one skill, one rule, and the issue that tracks fixing it, so the
+    exemption is visible and attributable. An entry disappears when the
+    violation is fixed: check_skill_composition() fails on an entry whose skill
+    no longer violates its rule (criterion validator-signal-hygiene).
+
+    This file is hand-edited, so its shape is validated rather than assumed —
+    a malformed entry must produce a finding, not a traceback that aborts every
+    later check in the run."""
+    if not COMPOSITION_ACK_PATH.is_file():
+        return {}
+    rel = COMPOSITION_ACK_PATH.relative_to(ROOT).as_posix()
+    try:
+        data = json.loads(COMPOSITION_ACK_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        err(f"{rel}: not valid JSON: {e}")
+        return {}
+    if not isinstance(data, dict):
+        err(f"{rel}: top-level value must be an object with an 'acknowledged' key")
+        return {}
+    acks = data.get("acknowledged", {})
+    if not isinstance(acks, dict):
+        err(f"{rel}: 'acknowledged' must be an object of skill -> rule -> entry")
+        return {}
+    clean: dict[str, dict[str, dict]] = {}
+    for skill, rules in acks.items():
+        if not isinstance(rules, dict):
+            err(f"{rel}: {skill}: value must be an object of rule -> entry")
+            continue
+        for rule, entry in rules.items():
+            if rule not in COMPOSITION_RULES:
+                err(f"{rel}: {skill}: unknown rule '{rule}' (allowed: {list(COMPOSITION_RULES)})")
+                continue
+            if not isinstance(entry, dict):
+                err(f"{rel}: {skill}/{rule}: entry must be an object with 'issue' and 'reason'")
+                continue
+            if not re.fullmatch(r"#\d+", str(entry.get("issue", ""))):
+                err(f"{rel}: {skill}/{rule}: 'issue' must name the tracking issue as '#<n>'")
+            if not entry.get("reason"):
+                err(f"{rel}: {skill}/{rule}: missing 'reason'")
+            clean.setdefault(skill, {})[rule] = entry
+    return clean
+
+
+def check_skill_composition() -> None:
+    """Enforce the Skill/Runtime/Hook composition rule (skills/AGENTS.md:66-72)
+    on the SKILL.md body, which check_skills() never reads.
+
+    Each finding is either a failure or an acknowledged, issue-tracked exemption.
+    An acknowledgement for a skill that no longer violates the rule is itself a
+    failure, so the baseline can only shrink."""
+    skills_dir = ROOT / "skills"
+    if not skills_dir.is_dir():
+        return  # partial checkout; do not abort the rest of the run
+    acks = load_composition_acks()
+    rel_ack = COMPOSITION_ACK_PATH.relative_to(ROOT).as_posix()
+    used: set[tuple[str, str]] = set()
+
+    for d in sorted(skills_dir.iterdir()):
+        sk = d / "SKILL.md"
+        if not d.is_dir() or not sk.is_file():
+            continue
+        tag = f"skills/{d.name}"
+        text = sk.read_text(encoding="utf-8")
+        fences = fenced_blocks(text)
+        findings: list[tuple[str, bool, str]] = []  # (rule, fatal, message)
+
+        # "Body under 500 lines" means the body, so the frontmatter block is not
+        # counted, and 500 itself is already not "under 500".
+        body_text = re.sub(r"^---\r?\n.*?\r?\n---\r?\n", "", text, count=1, flags=re.S)
+        n_lines = len(body_text.splitlines())
+        if n_lines >= SKILL_BODY_MAX_LINES:
+            findings.append(("body-length", True,
+                             f"SKILL.md body is {n_lines} lines, not under the "
+                             f"{SKILL_BODY_MAX_LINES}-line limit — move overflow to references/"))
+
+        if ABSOLUTE_HOME_PATH_RE.search(text):
+            hits = [str(i + 1) for i, line in enumerate(text.splitlines())
+                    if ABSOLUTE_HOME_PATH_RE.search(line)]
+            findings.append(("absolute-path", True,
+                             f"SKILL.md hard-codes a machine-specific user path at line(s) "
+                             f"{', '.join(hits)} — the skill will not load on another machine"))
+
+        oversized = [len(body.splitlines()) for lang, body in fences
+                     if lang in SCHEMA_FENCE_LANGS
+                     and len(body.splitlines()) > SKILL_INLINE_SCHEMA_MAX_LINES]
+        if oversized:
+            findings.append(("inline-schema", True,
+                             f"SKILL.md inlines {len(oversized)} {'/'.join(sorted(SCHEMA_FENCE_LANGS))} "
+                             f"block(s) of {max(oversized)} lines (limit "
+                             f"{SKILL_INLINE_SCHEMA_MAX_LINES}) — schemas and contracts belong "
+                             f"outside SKILL.md"))
+
+        n_cmd = sum(1 for lang, _ in fences if lang in COMMAND_FENCE_LANGS)
+        if n_cmd > SKILL_COMMAND_BLOCK_MAX:
+            findings.append(("command-blocks", False,
+                             f"SKILL.md holds {n_cmd} command blocks (over "
+                             f"{SKILL_COMMAND_BLOCK_MAX}) — deterministic behavior belongs in scripts/"))
+
+        for rule, fatal, msg in findings:
+            if rule in acks.get(d.name, {}):
+                used.add((d.name, rule))
+                continue
+            (err if fatal else warn)(f"{tag}: {msg}")
+
+    for skill, rules in acks.items():
+        for rule in rules:
+            if (skill, rule) not in used:
+                err(f"{rel_ack}: {skill}/{rule} no longer violates the rule — "
+                    f"delete the acknowledgement")
 
 
 def diff_tree(repo: Path, live: Path, tag: str, ignore: list[str] | None = None) -> None:
@@ -377,6 +557,7 @@ def main() -> int:
     no_live = "--no-live" in sys.argv
     check_agents()
     check_skills()
+    check_skill_composition()
     check_wiring(no_live=no_live)
     if not no_live:
         check_drift()
@@ -388,10 +569,24 @@ def main() -> int:
         check_rulebook_enforcement()
     if no_live:
         print("skipped: drift check, wiring live-path/junction/symlink resolution (--no-live)")
+    # A warning that never fails anything is the noise this workspace already
+    # got burned by (issue #7, criterion validator-signal-hygiene): every
+    # consumer of this script — .githooks/pre-push, .github/workflows/
+    # validate.yml, scripts/health_check.py — gates on the exit code alone, so
+    # an unacknowledged warning left green would print forever and be read by
+    # nobody. The warn/error split is about the strength of the signal (a
+    # command-block count is a proxy, a 500-line body is a fact), not about
+    # whether it must be resolved. Acknowledging it is the way to make it stop.
+    for w in warnings:
+        print(f"WARN: {w}")
     if errors:
         print(f"FAIL ({len(errors)} problems)")
         for e in errors:
             print(f"  - {e}")
+    if warnings:
+        print(f"FAIL ({len(warnings)} unacknowledged warnings) — fix them, or record "
+              f"each one in config/skill-composition-acknowledged.json with its tracking issue")
+    if errors or warnings:
         return 1
     print("OK: agents valid, no drift, criteria consistent, wiring valid, no leaked ledgers")
     return 0

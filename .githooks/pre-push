@@ -4,7 +4,8 @@
 # One-time setup (per clone/worktree, not committed to git config):
 #   git config core.hooksPath .githooks
 #
-# Runs scripts/validate_workspace.py and blocks the push on failure.
+# Runs scripts/validate_workspace.py and the scripts/tests unit suite, and
+# blocks the push on failure.
 # Works under Git Bash on Windows (this is a POSIX sh script; Git for Windows
 # ships bash/sh, so no Windows-specific handling is needed here). Reads and
 # discards stdin (the ref list Git supplies) since the validator doesn't need it.
@@ -14,11 +15,12 @@ cat >/dev/null
 repo_root=$(git rev-parse --show-toplevel) || exit 1
 cd "$repo_root" || exit 1
 
-python -X utf8 scripts/validate_workspace.py
+python -X utf8 scripts/validate_workspace.py \
+    && python -X utf8 -m unittest discover -s scripts/tests
 status=$?
 
 if [ "$status" -ne 0 ]; then
-    echo "pre-push: scripts/validate_workspace.py failed — push blocked." >&2
+    echo "pre-push: scripts/validate_workspace.py or scripts/tests failed — push blocked." >&2
     echo "pre-push: fix the errors above, or run the command yourself to see full output." >&2
     exit 1
 fi

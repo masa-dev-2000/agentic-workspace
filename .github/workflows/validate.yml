@@ -14,3 +14,5 @@ jobs:
           python-version: "3.11"
       - name: Validate workspace (no-live)
         run: python -X utf8 scripts/validate_workspace.py --no-live
+      - name: Unit tests
+        run: python -X utf8 -m unittest discover -s scripts/tests -v
