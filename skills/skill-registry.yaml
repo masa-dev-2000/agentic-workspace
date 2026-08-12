@@ -286,7 +286,7 @@ skills:
       writes: [{domain: decision-material-artifacts, mode: artifact}]
       ownerOf: []
     completion:
-      proof: [approved Decision Card, validated communication and claim contract, hash-bound final artifact and render, complete format validation, sequential revision history within the two-revision cap, passing context-isolated reader verdict bound to the final artifact hash, consequential gates and final approval evidence recorded, approved executable evidence-acquisition plan when applicable]
+      proof: [approved Decision Card, validated communication and claim contract, hash-bound final artifact and render, complete format validation, sequential revision history within the two-revision cap, passing context-isolated reader verdict bound to the final artifact hash, semantic anchors declared before review and never edited after seeing a verdict, blind reader asked about deflection or excuse-making whenever the material carries an apology or admission, consequential gates and final approval evidence recorded, approved executable evidence-acquisition plan when applicable]
       verifier: human
       acceptedEvidence: [artifact, validate, domain-verdict, explicit-feedback, authority]
     failure: *standardFailure
@@ -295,7 +295,7 @@ skills:
     maturity: alpha
     version: 0.3.0
     contractFingerprint: contract-v2:material.decision-ready.build@0.3.0
-    contractContentDigest: sha256:1d16989b1992bbe0056616fac87b42aeb7cfdc47df0eeb423b0e1efae82deb05
+    contractContentDigest: sha256:ff802f5e45be2e7c34d6f5e845189ab7e5729e7b5ab304f9ea271a9835ad4c66
 
   - key: build-dependency-roadmap
     capability: project.roadmap.render

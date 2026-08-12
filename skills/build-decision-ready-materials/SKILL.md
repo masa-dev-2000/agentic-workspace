@@ -65,6 +65,15 @@ applicable PPTX, DOCX, or PDF Skill.
    declared semantic anchors with both the final text extract and blind extraction. Allow at most
    two materially changed cycles after `r0`. If a fresh independent reviewer is unavailable or
    the artifact still fails, return it as a draft with blockers; never claim completion.
+
+   Choose each anchor from the phrase the reader must be able to say back in that extraction
+   field, not from a mechanism, product, or setting name. A mechanism name survives in the text
+   extract but disappears when the reader summarises, so a recommendation anchor belongs on the
+   operative choice the reader is asked to accept. Never edit an anchor after seeing a verdict:
+   an anchor miss is either a real gap in the artifact or a declaration error to be reported as a
+   blocker, and rewriting it to obtain a pass is the prohibited form of weakening the expected
+   answer. Anchor misses have located real defects — a causal chain that stopped short of its
+   stated outcome, and an ask that was dropped while shortening — so diagnose the artifact first.
 10. Run the completion form of the deterministic plan check:
 
     `python scripts/validate_material_plan.py --completion material-plan.json`
@@ -93,6 +102,12 @@ applicable PPTX, DOCX, or PDF Skill.
   resource request when the artifact is meant to trigger execution.
 - **Blind-reader gate:** A context-isolated reader can recover the approved decision,
   recommendation, rationale, uncertainty, and ask from the rendered artifact alone.
+- **Recipient-stance gate:** When the material carries an apology, an incident account, a
+  correction, or any admission, ask the blind reader explicitly whether any sentence reads as
+  deflecting responsibility, minimising, or excuse-making, and to quote it. Structural
+  explanations of cause invite that reading; state accountability affirmatively before the
+  structure, and keep the author's own internal circumstances out of the artifact — they do not
+  serve the reader's decision and dilute everything that does.
 
 Do not mark completion from a plan, generated source, successful export, or self-review alone.
 Completion requires the final artifact, format-specific structural and rendered evidence, a
