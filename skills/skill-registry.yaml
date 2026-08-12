@@ -2441,7 +2441,7 @@ skills:
     authority: {default: deny, effects: [read, workspace-write]}
     data: {reads: [rulebook-source, dependency-ledgers], writes: [{domain: rulebook-source, mode: artifact}], ownerOf: []}
     completion:
-      proof: [incident record or ledger row exists as a real file with reported path, deletion requests show a ledger-check result confirmed by the user before execution, countermeasures ranked mechanism over checklist over attention, horizontal-deployment question asked once per incident, outbound documents report the 4-point gate result with sources cited or assertions cut]
+      proof: [incident record or ledger row exists as a real file with reported path, deletion requests show a ledger-check result confirmed by the user before execution, countermeasures ranked mechanism over checklist over attention, each countermeasure names the firing moment, the artifact opened, the primary source compared against, and the evidence left behind, horizontal-deployment question asked once per incident, outbound documents report the 4-point gate result with sources cited or assertions cut]
       verifier: self
       acceptedEvidence: [artifact, validate]
     failure: *standardFailure
@@ -2450,4 +2450,4 @@ skills:
     maturity: alpha
     version: 0.1.0
     contractFingerprint: contract-v2:operations.mistake.prevention@0.1.0
-    contractContentDigest: sha256:800a2d3fffa66e6e52c4f49cfe72e99eb47f0b9e521af2d7dc2e1bbc020a72bf
+    contractContentDigest: sha256:ff88e250e44fdf550a070fc96133a950b82aca7addf6bcdffbfc1223cb537910
