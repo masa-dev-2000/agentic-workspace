@@ -1,0 +1,68 @@
+# 最小の動くワークフロー例
+#
+# SKILL.md「最小の動くワークフロー例」から切り出したもの。
+# そのまま .github/workflows/ に置いて使える形にしてある。
+# 置き換えるところ：
+#   - APP_RUNNER_TOKEN … 自分のアプリが発行した通行証（GitHub の Secret 名）
+#   - PUBLIC_URL ……… 自分のアプリの公開URL（GitHub の変数）
+#   - app …………………… MCP サーバー名。ツール名 mcp__app__* と対応させる
+#   - draft-prompt.txt … 指示文のファイル
+
+name: draft
+
+permissions:
+  contents: write
+
+on:
+  repository_dispatch:
+    types: [draft-requested]
+  schedule:
+    - cron: '*/5 * * * *'     # 取りこぼしの拾い直し（GitHub の最短間隔）
+  push:
+    paths:
+      - '.github/run/draft.txt'   # 自分で起動したいとき
+  workflow_dispatch:
+
+concurrency:
+  group: draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Claude Code を用意する
+        run: |
+          set -euo pipefail
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: つなぎ先を用意する
+        env:
+          RUNNER_TOKEN: ${{ secrets.APP_RUNNER_TOKEN }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          # 通行証はファイルに書くだけ。ログには出さない
+          jq -n \
+            --arg url "${PUBLIC_URL}/agent-mcp" \
+            --arg auth "Bearer ${RUNNER_TOKEN}" \
+            '{mcpServers: {app: {type: "http", url: $url, headers: {Authorization: $auth}}}}' \
+            > "${RUNNER_TEMP}/mcp.json"
+
+      - name: 文章をつくる
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          # --bare は使わない（CLAUDE_CODE_OAUTH_TOKEN を読まない）
+          # 長い指示文は別ファイル（YAML のブロック内に書かない）
+          claude -p "$(cat .github/run/draft-prompt.txt)" \
+            --mcp-config "${RUNNER_TEMP}/mcp.json" \
+            --allowedTools "mcp__app__list_draft_requests,mcp__app__submit_draft" \
+            --max-turns 20 \
+            --output-format json > "${RUNNER_TEMP}/out.json"
+          jq -r '.result // "（結果なし）"' "${RUNNER_TEMP}/out.json"

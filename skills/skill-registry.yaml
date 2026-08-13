@@ -2451,3 +2451,43 @@ skills:
     version: 0.1.0
     contractFingerprint: contract-v2:operations.mistake.prevention@0.1.0
     contractContentDigest: sha256:800a2d3fffa66e6e52c4f49cfe72e99eb47f0b9e521af2d7dc2e1bbc020a72bf
+
+  - key: webapp-subscription-ai
+    capability: ai.subscription-runtime.connect
+    primaryCategory: product-development-environment
+    primaryResponsibility: 'Show how to connect a web application to subscription-plan Claude without generative API metered billing, by queueing requests and running Claude Code in CI over an MCP endpoint.'
+    entrypoint: adaptive
+    invocationPolicy: implicit
+    delegatesTo: []
+    stateOwner: none
+    secondaryCapabilities: []
+    source: local
+    path: webapp-subscription-ai
+    exposure: {surface: public, invocation: implicit, migrationState: local-source}
+    responsibility: Show how to connect a web application to subscription-plan Claude without generative API metered billing, by queueing requests and running Claude Code in CI over an MCP endpoint.
+    nonGoals: [return a synchronous immediate response, serve an unrestricted public audience, design around metered generative API billing, implement the MCP server itself on the user's behalf]
+    triggers:
+      positive: [embed AI in a web app without metered API billing, call an in-house MCP server from CI, reach an MCP endpoint from a headless execution environment]
+      negative: [a synchronous answer is needed within seconds, an always-on worker process is required, the feature is offered to an unrestricted public audience]
+    dependencies:
+      capabilities: []
+      components: []
+    interfaces:
+      inputs: [{name: webAppQueueDesign, type: design-ref}, {name: ciRunnerContext, type: config-ref}]
+      outputs: [{name: connectionDesign, type: artifact-ref}, {name: humanSetupSteps, type: report-ref}]
+    authority: {default: deny, effects: [read]}
+    data:
+      reads: [web-app-source, workflow-definitions, mcp-endpoint-contract]
+      writes: []
+      ownerOf: []
+    completion:
+      proof: [runtime split between web app queue and CI executor is stated, subscription-token authentication path avoids metered API billing, CI and interactive MCP entrypoints are separated, server-side tool scoping and human approval before external publication are stated]
+      verifier: self
+      acceptedEvidence: [artifact, validate, authority]
+    failure: *readOnlyFailure
+    telemetry: *telemetry
+    evals: [billing-separation, auth-entrypoint-separation, server-side-tool-scoping, asynchronous-queue-contract, unsuitable-case-routing]
+    maturity: experimental
+    version: 0.1.0
+    contractFingerprint: contract-v2:ai.subscription-runtime.connect@0.1.0
+    contractContentDigest: sha256:04145f7b987173cc5d34e4b11d41f9f91ca82fddca344320d3c8de159ab6a989
