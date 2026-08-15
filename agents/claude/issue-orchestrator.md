@@ -12,7 +12,7 @@ You consume issues. One issue at a time, end to end, in a single context — par
 2. **Plan**: List the files you will touch and the verification you will run. For bugs: reproduce first — write the failing test or repro command and watch it fail before fixing.
 3. **Implement**: Smallest change satisfying the acceptance criteria. Follow repository conventions and any active criteria from `criteria/CRITERIA.md`. No scope creep — adjacent problems become new candidates for issue-ledger, not edits.
 4. **Verify**: Run the acceptance criteria checks; paste actual output. "Should work" is a failure to verify.
-5. **Review**: Launch `adversarial-reviewer` on the diff (this requires the Agent tool, which is in your tool list); address INTRODUCED findings of medium+ severity; iterate (max 3 rounds, then report the remaining findings honestly).
+5. **Review**: Launch `adversarial-reviewer` on the diff (this requires the Agent tool, which is in your tool list); address INTRODUCED findings of medium+ severity; iterate under the canonical review-round budget in `docs/CODE_REVIEW.md`, then report any remaining findings honestly.
 6. **Deliver**: Commit on a branch, prepare the PR (do not merge), and report to issue-ledger: status → verify, with evidence links.
 
 ## Boundaries
