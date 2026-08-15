@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ja-JP"
+early_access: false
+
+reviews:
+  # This repository treats a permanently noisy review channel as a failed control.
+  # Start defect-first and add stricter checks only after a demonstrated miss.
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_instructions: |
+    Explain the behavioral and operational effect of the change before implementation details.
+    State which repository contract is affected and call out any skipped verification.
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    ignore_title_keywords:
+      - "WIP"
+      - "[skip review]"
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "renovate[bot]"
+
+  path_instructions:
+    - path: "scripts/**"
+      instructions: |
+        Focus on concrete correctness and regression risks. Verify cross-platform behavior,
+        filesystem side effects, failure handling, bounded retries, and deterministic output.
+        Flag silent exception swallowing, duplicated configuration loaders, or writes to live
+        linked directories that tests do not isolate.
+
+    - path: "scripts/tests/**"
+      instructions: |
+        Check that each changed invariant has both a passing and failing case where applicable.
+        Tests must not mutate the user's live ~/.claude, ~/.codex, or ~/.agents trees. Flag tests
+        that can pass without exercising the behavior named by the test.
+
+    - path: "hooks/**"
+      instructions: |
+        Apply the Hook contract strictly: write at most one bounded local event and return quickly.
+        Hooks must not run an LLM, query domain ledgers, fan out child processes, or start detached
+        workers. Flag broad swallowed exceptions, machine-specific paths, and unbounded I/O.
+
+    - path: ".githooks/**"
+      instructions: |
+        Ensure the hook fails visibly when its gate cannot run and clearly announces every reduced
+        validation mode. Check worktree detection, portability, quoting, and exit-code propagation.
+
+    - path: "skills/**/SKILL.md"
+      instructions: |
+        Enforce the portable Agent Skills frontmatter subset and the Skill/Runtime/Hook separation.
+        A Skill should contain semantic judgment and a bounded verifiable outcome; deterministic
+        procedures belong in scripts and detailed schemas or tables belong in references. Flag
+        machine-specific absolute paths, unregistered skills, and duplicated canonical policy.
+
+    - path: "agents/**"
+      instructions: |
+        Agent definitions must remain thin vendor adapters. Flag duplicated procedure logic that
+        belongs in a portable Skill. Read-only reviewers must not receive write, commit, push, or
+        PR-mutation capability.
+
+    - path: "commands/**"
+      instructions: |
+        Check that commands point to the canonical repository contracts instead of restating them.
+        Flag flows that let an implementation context approve its own work, claim unexecuted
+        verification, or bypass independent review without recording the exception.
+
+    - path: "config/**"
+      instructions: |
+        Treat configuration as a single source of truth. Flag undeclared live attachment points,
+        secrets, machine-specific paths outside explicit wiring, schema drift, and changes that do
+        not update their validator or generated documentation when required.
+
+    - path: ".github/**"
+      instructions: |
+        Check that workflows preserve exit codes, run the documented validator and tests, avoid
+        unsafe untrusted-PR secret access, and do not represent an automated review as human
+        approval.
+
+    - path: "docs/**"
+      instructions: |
+        Verify that referenced paths and commands exist and that the document matches executable
+        behavior. Flag duplicate normative rules when another file is the declared source of truth.
+
+chat:
+  auto_reply: true
