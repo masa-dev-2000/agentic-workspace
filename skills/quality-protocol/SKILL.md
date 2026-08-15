@@ -37,7 +37,9 @@ Pass condition: you have seen both the failure and the pass in this session. If 
 
 After implementing, launch the `adversarial-reviewer` agent (it fetches the diff itself via `git diff`). For each finding, apply the remediation path and add the regression test the reviewer named (or state why the test is not warranted). Then launch the agent again.
 
-Exit condition: zero INTRODUCED findings of severity medium or higher (the reviewer states PASS), OR 3 rounds completed (report remaining findings honestly in that case). Pre-existing defects the reviewer notes are surfaced to the user, not fixed unprompted.
+Exit when the reviewer reports zero INTRODUCED findings of severity medium or higher, or when the canonical review-round budget in `docs/CODE_REVIEW.md` is exhausted. In the latter case, report every remaining finding and disagreement honestly. This review-round budget is distinct from the same-failure retry cap in `skills/AGENTS.md`.
+
+Pre-existing defects the reviewer notes are surfaced to the user, not fixed unprompted.
 
 If the agent is unavailable, self-review the full diff against the same checklist (see the agent definition), acting as a reviewer who wants to reject the change.
 
