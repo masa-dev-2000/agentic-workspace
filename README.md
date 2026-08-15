@@ -49,3 +49,13 @@ validator are the enforcement mechanism instead.
 Wiring: `config/wiring.json` declares every junction/symlink/copy/ledger/scheduled-task attachment point between this repo and the live machine. `python -X utf8 scripts/bootstrap_workspace.py --check` verifies it read-only; `--apply` reproduces it; `--markdown` emits a table.
 
 Operations: see `docs/OPERATIONS.md` for blast radius, cadence, and recovery runbooks.
+
+## Codex-native code review
+
+Repository-wide Codex review guidance lives in the root `AGENTS.md`. The review
+pipeline is implementation → executed validation → a separate local `/review`
+pass → native GitHub Codex Code Review → human merge decision. It intentionally
+does not depend on CodeRabbit or a custom API-key-backed review Action.
+
+See `docs/CODEX_REVIEW.md` for the one-time Codex repository setting and the
+normal PR workflow.
