@@ -47,11 +47,11 @@ cd <dir> && npx tsc --noEmit 2>&1 | head -30
 1. Reviewerは読み取り専用で、変更Diffと関連Call site・Testを直接確認する。
 2. `[INTRODUCED]` のmedium以上を実装担当がSourceで再確認し、正しい指摘なら修正と回帰Testを追加する。
 3. 修正後に同じReviewerを再実行する。
-4. 最大3 Review roundで止め、残る指摘・反論・Riskを隠さず記録する。
+4. `docs/CODE_REVIEW.md` のReview-round budgetで止め、残る指摘・反論・Riskを隠さず記録する。
 
 合格条件:
 - medium以上のintroduced findingが0件、または
-- 3 round終了後に残件と理由をPRへ明記できる状態。
+- canonical review-round budget終了後に残件と理由をPRへ明記できる状態。
 
 `adversarial-reviewer` が利用できない場合だけ、`$review-agent` または同じChecklistによる別Sessionの
 読み取り専用ReviewへFallbackし、その例外をPRへ記録する。
