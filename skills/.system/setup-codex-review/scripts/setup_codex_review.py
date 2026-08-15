@@ -164,24 +164,46 @@ def _dedupe(values: list[str]) -> list[str]:
     return result
 
 
-def _find_pr_template(repo: Path) -> Path | None:
-    candidates = [
+def _pr_template_candidates(repo: Path) -> list[Path]:
+    file_candidates = [
         repo / ".github" / "pull_request_template.md",
         repo / ".github" / "PULL_REQUEST_TEMPLATE.md",
         repo / "pull_request_template.md",
         repo / "PULL_REQUEST_TEMPLATE.md",
+        repo / "docs" / "pull_request_template.md",
+        repo / "docs" / "PULL_REQUEST_TEMPLATE.md",
     ]
-    existing = [path for path in candidates if path.is_file()]
+    directory_candidates = [
+        repo / ".github" / "PULL_REQUEST_TEMPLATE",
+        repo / ".github" / "pull_request_template",
+        repo / "docs" / "PULL_REQUEST_TEMPLATE",
+        repo / "docs" / "pull_request_template",
+        repo / "PULL_REQUEST_TEMPLATE",
+        repo / "pull_request_template",
+    ]
+    candidates = [path for path in file_candidates if path.is_file()]
+    for directory in directory_candidates:
+        if directory.is_dir():
+            candidates.extend(sorted(path for path in directory.glob("*.md") if path.is_file()))
+    return sorted(set(candidates), key=lambda path: str(path.relative_to(repo)).casefold())
+
+
+def _find_pr_template(repo: Path) -> Path | None:
+    existing = _pr_template_candidates(repo)
     if len(existing) > 1:
         joined = ", ".join(str(path.relative_to(repo)) for path in existing)
-        raise SetupError(f"multiple pull-request templates found: {joined}")
+        raise SetupError(
+            "multiple pull-request templates found; choose and reconcile one deliberately: "
+            + joined
+        )
     return existing[0] if existing else None
 
 
 def scan(repo_path: Path) -> dict[str, Any]:
     repo = resolve_repo(repo_path)
     agents = repo / "AGENTS.md"
-    template = _find_pr_template(repo)
+    templates = _pr_template_candidates(repo)
+    template = templates[0] if len(templates) == 1 else None
     agents_text = agents.read_text(encoding="utf-8") if agents.is_file() else ""
     template_text = template.read_text(encoding="utf-8") if template else ""
     status = _run_git(repo, "status", "--porcelain", check=False).stdout.strip()
@@ -193,6 +215,8 @@ def scan(repo_path: Path) -> dict[str, Any]:
         "clean_worktree": not bool(status),
         "agents_file": "AGENTS.md" if agents.is_file() else None,
         "pull_request_template": str(template.relative_to(repo)) if template else None,
+        "pull_request_templates": [str(path.relative_to(repo)) for path in templates],
+        "template_conflict": len(templates) > 1,
         "managed_agents_block": AGENTS_START in agents_text and AGENTS_END in agents_text,
         "managed_pr_block": PR_START in template_text and PR_END in template_text,
         "unmanaged_code_review_rules": (
@@ -309,13 +333,19 @@ def _render_pr_block(config: dict[str, Any]) -> str:
 
 
 def _replace_managed(text: str, start: str, end: str, block: str) -> str:
-    if (start in text) != (end in text):
+    start_count = text.count(start)
+    end_count = text.count(end)
+    if start_count != end_count:
         raise SetupError(f"incomplete managed marker pair: {start}")
-    if start in text:
+    if start_count > 1:
+        raise SetupError(f"duplicate managed blocks found: {start}")
+    if start_count == 1:
         pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.S)
         return pattern.sub(block, text, count=1)
-    base = text.rstrip()
-    return f"{base}\n\n{block}\n" if base else f"{block}\n"
+    if not text:
+        return f"{block}\n"
+    separator = "" if text.endswith("\n\n") else ("\n" if text.endswith("\n") else "\n\n")
+    return f"{text}{separator}{block}\n"
 
 
 def _expected_files(repo: Path, config: dict[str, Any]) -> dict[Path, str]:
