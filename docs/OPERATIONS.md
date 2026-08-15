@@ -54,7 +54,7 @@ python -X utf8 scripts/bootstrap_workspace.py --markdown
 ```
 
 <!-- generated:skill-count -->
-47 skills are wired into every runtime. Verify with `python -X utf8 scripts/list_skill_sources.py --names`.
+48 skills are wired into every runtime. Verify with `python -X utf8 scripts/list_skill_sources.py --names`.
 <!-- /generated:skill-count -->
 
 <!-- generated:wiring-table -->
