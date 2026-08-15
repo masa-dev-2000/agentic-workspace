@@ -41,6 +41,12 @@ unrelated trees) and keeps every other check, including RULEBOOK enforcement.
 The hook prints on stderr which groups it skipped and why, so a reduced gate is
 never silent.
 
+Review: `docs/CODE_REVIEW.md` is the canonical layered pipeline. Implementation verification is
+followed by a fresh read-only agent review, deterministic CI, optional CodeRabbit PR review through
+`.coderabbit.yaml`, and finally the human owner's decision. CodeRabbit is supplementary and remains
+inactive until its GitHub App is installed; it never replaces the local `review-agent` /
+`adversarial-reviewer` step or human approval.
+
 Change management is deliberately minimal: this is a single-owner repo, so
 GitHub branch protection is not enabled (the owner either bypasses it or is
 taxed by it — either way it adds no real control). The pre-push hook plus CI
