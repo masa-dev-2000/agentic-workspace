@@ -100,6 +100,7 @@ class SetupCodexReviewTests(unittest.TestCase):
             ["pnpm lint", "pnpm test", "pnpm build"],
         )
         self.assertTrue(result["clean_worktree"])
+        self.assertFalse(result["template_conflict"])
 
     def test_apply_is_idempotent(self) -> None:
         (self.repo / "README.md").write_text("# Demo\n", encoding="utf-8")
@@ -119,27 +120,62 @@ class SetupCodexReviewTests(unittest.TestCase):
             (self.repo / ".github/pull_request_template.md").read_text(),
         )
 
-    def test_existing_content_is_preserved(self) -> None:
-        (self.repo / "AGENTS.md").write_text(
-            "# Existing rules\n\nKeep this sentence.\n", encoding="utf-8"
-        )
+    def test_existing_content_is_preserved_byte_for_byte(self) -> None:
+        existing_agents = "# Existing rules\n\nKeep this sentence.  \n\n\n"
+        existing_template = "# Existing template\n\n<!-- keep -->  \n"
+        (self.repo / "AGENTS.md").write_text(existing_agents, encoding="utf-8")
         template = self.repo / ".github" / "pull_request_template.md"
         template.parent.mkdir(parents=True)
-        template.write_text("# Existing template\n", encoding="utf-8")
+        template.write_text(existing_template, encoding="utf-8")
         self.commit()
 
         MODULE.apply(self.repo, self.config(), write=True)
 
         self.assertTrue(
-            (self.repo / "AGENTS.md").read_text().startswith("# Existing rules")
+            (self.repo / "AGENTS.md").read_text(encoding="utf-8").startswith(
+                existing_agents
+            )
         )
-        self.assertTrue(template.read_text().startswith("# Existing template"))
+        self.assertTrue(
+            template.read_text(encoding="utf-8").startswith(existing_template)
+        )
 
     def test_unmanaged_review_rules_fail_closed(self) -> None:
         (self.repo / "AGENTS.md").write_text(
             "# Instructions\n\n## Code Review Rules\n\n- Existing rule.\n",
             encoding="utf-8",
         )
+        self.commit()
+
+        with self.assertRaises(MODULE.SetupError):
+            MODULE.apply(self.repo, self.config(), write=True)
+
+    def test_multiple_template_files_are_reported_and_fail_closed(self) -> None:
+        first = self.repo / ".github" / "PULL_REQUEST_TEMPLATE" / "feature.md"
+        second = self.repo / ".github" / "PULL_REQUEST_TEMPLATE" / "bug.md"
+        first.parent.mkdir(parents=True)
+        first.write_text("# Feature\n", encoding="utf-8")
+        second.write_text("# Bug\n", encoding="utf-8")
+        self.commit()
+
+        scan = MODULE.scan(self.repo)
+
+        self.assertTrue(scan["template_conflict"])
+        self.assertEqual(
+            scan["pull_request_templates"],
+            [
+                ".github/PULL_REQUEST_TEMPLATE/bug.md",
+                ".github/PULL_REQUEST_TEMPLATE/feature.md",
+            ],
+        )
+        with self.assertRaises(MODULE.SetupError):
+            MODULE.apply(self.repo, self.config(), write=True)
+
+    def test_duplicate_managed_blocks_fail_closed(self) -> None:
+        block = (
+            f"{MODULE.AGENTS_START}\nmanaged\n{MODULE.AGENTS_END}\n"
+        )
+        (self.repo / "AGENTS.md").write_text(block + block, encoding="utf-8")
         self.commit()
 
         with self.assertRaises(MODULE.SetupError):
