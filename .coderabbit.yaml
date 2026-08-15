@@ -39,9 +39,8 @@ reviews:
 
     - path: "hooks/**"
       instructions: |
-        Apply the Hook contract strictly: write at most one bounded local event and return quickly.
-        Hooks must not run an LLM, query domain ledgers, fan out child processes, or start detached
-        workers. Flag broad swallowed exceptions, machine-specific paths, and unbounded I/O.
+        Apply the canonical Hook contract in skills/AGENTS.md as a blocking review rule. Also flag
+        broad swallowed exceptions, machine-specific paths, and unbounded I/O.
 
     - path: ".githooks/**"
       instructions: |
@@ -50,22 +49,21 @@ reviews:
 
     - path: "skills/**/SKILL.md"
       instructions: |
-        Enforce the portable Agent Skills frontmatter subset and the Skill/Runtime/Hook separation.
-        A Skill should contain semantic judgment and a bounded verifiable outcome; deterministic
-        procedures belong in scripts and detailed schemas or tables belong in references. Flag
-        machine-specific absolute paths, unregistered skills, and duplicated canonical policy.
+        Apply the canonical Skill composition, portable frontmatter, and registry rules in
+        skills/AGENTS.md. Flag duplicated normative policy and any change that claims verification
+        without an executable check.
 
     - path: "agents/**"
       instructions: |
-        Agent definitions must remain thin vendor adapters. Flag duplicated procedure logic that
-        belongs in a portable Skill. Read-only reviewers must not receive write, commit, push, or
+        Apply the thin-adapter rule in adapters/README.md and the reviewer boundaries in
+        docs/CODE_REVIEW.md. Read-only reviewers must not receive write, commit, push, or
         PR-mutation capability.
 
     - path: "commands/**"
       instructions: |
-        Check that commands point to the canonical repository contracts instead of restating them.
-        Flag flows that let an implementation context approve its own work, claim unexecuted
-        verification, or bypass independent review without recording the exception.
+        Apply docs/CODE_REVIEW.md. Flag flows that let an implementation context approve its own
+        work, claim unexecuted verification, or bypass independent review without recording the
+        exception.
 
     - path: "config/**"
       instructions: |
