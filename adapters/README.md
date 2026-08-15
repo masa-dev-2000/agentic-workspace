@@ -12,11 +12,17 @@ wiring layer that connects one agent service to the neutral core.
 |---|---|---|---|---|
 | Claude Code | `~/.claude/skills` → symlink → `~/.codex/skills` → junction → `skills/` | `~/.claude/agents` → junction → `agents/claude/` | `~/.claude/CLAUDE.md` (copy: `config/CLAUDE.global.md`) | `~/.claude/settings.json` + scripts (copy: `hooks/claude/`) |
 | OpenAI Codex CLI | `~/.codex/skills` (junction) and `~/.agents/skills` (junction) | — (no cross-vendor agent format) | `AGENTS.md` in `skills/` | `~/.codex/hooks.json` (copy: `hooks/codex/`) |
+| OpenAI Codex GitHub Code Review | — | Codex-managed dedicated reviewer | root/nested `AGENTS.md`, especially `## Code Review Rules` | Native GitHub integration; no repository Action or local hook |
 | Gemini CLI | `~/.agents/skills` (junction) — native path | — | AGENTS.md (native) | — |
 | Any new service | point it at `~/.agents/skills` or junction its skill dir to `skills/` | add `agents/<vendor>/` if it has an agent format | derive from `config/` | add `hooks/<vendor>/` if supported |
 
 `~/.agents/skills/` is the emerging cross-tool location (read natively by Codex CLI
 and Gemini CLI). All paths above resolve to the single `skills/` tree in this repo.
+
+Codex GitHub Code Review is enabled in the Codex repository settings rather than
+through `config/wiring.json`. The repository-owned part is the applicable `AGENTS.md`
+guidance. Keep deterministic checks in GitHub Actions and use native Codex review for
+reasoning over the merge diff; see `docs/CODEX_REVIEW.md`.
 
 ## Onboarding checklist for a new agent service
 
