@@ -1,0 +1,6 @@
+interface:
+  display_name: "Setup Codex Review"
+  short_description: "Enable native Codex PR review in any repo"
+  default_prompt: "Use $setup-codex-review to configure the current repository for native Codex pull-request review and run a smoke test without merging."
+policy:
+  allow_implicit_invocation: false
